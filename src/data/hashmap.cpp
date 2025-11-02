@@ -1,5 +1,6 @@
 #include "data/hashmap.hpp"
 #include <iostream>
+#include "data/lru.hpp"
 
 template <typename K, typename V>
 HashMap<K, V>::HashMap(size_t initial_capacity): count(0), capacity(initial_capacity), table(initial_capacity, nullptr){}
@@ -103,3 +104,9 @@ bool HashMap<K, V>::contains(const K& key) const{
 // Explicit template instantiation for common types
 template class HashMap<string, int>;
 template class HashMap<int, string>;
+
+// Explicit instantiations of template combinations
+template class HashMap<int, int>;
+template class HashMap<int, LRUCache<int, int>::Node *>;
+template class HashMap<std::string, LRUCache<std::string, int>::Node *>;
+
