@@ -1,4 +1,4 @@
-# PANCache — Portable Advanced IN-Memory Cache
+# PANCache (Portable Advanced IN-Memory Cache)
 
 PANCache is a **high-performance in-memory key-value store** that demonstrates practical data-structures engineering: O(1) HashMap storage, TTL expiry via Min-Heap, LRU eviction via a doubly linked list, sorted queries using a SkipList/BST, and dependency invalidation via a Directed Acyclic Graph (DAG).
 
