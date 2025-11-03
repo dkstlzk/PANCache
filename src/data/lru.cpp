@@ -1,4 +1,6 @@
 #include "../../include/data/lru.hpp"
+#include "hashmap.cpp"
+
 
 template <typename K, typename V>
 LRUCache<K, V>::LRUCache(int cap) : capacity(cap), count(0), head(nullptr), tail(nullptr) {}
@@ -87,12 +89,4 @@ void LRUCache<K, V>::display() const{
 
 template class LRUCache<int, int>;
 template class LRUCache<string, int>;
-
-template class HashMap<std::string, int>;
-template class HashMap<int, std::string>;
-template class HashMap<int, void*>;
-template class HashMap<std::string, void*>;
-
-template class HashMap<int, struct LRUNode*>;
-template class HashMap<std::string, struct LRUNode*>;
 

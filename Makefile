@@ -1,53 +1,67 @@
-CXX := g++
-CXXFLAGS := -std=c++17 -Iinclude -Wall -Wextra -O2
-BUILD_DIR := build
+# Compiler and flags
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Iinclude
+
+# Directories
+SRC_DIR = src
+BUILD_DIR = build
+DATA_DIR = $(SRC_DIR)/data
+TEST_DIR = tests
+
+# Output executables
+MAIN_TARGET = $(BUILD_DIR)/pancache_main
+HASHMAP_TEST = $(BUILD_DIR)/test_hashmap
+LRU_TEST = $(BUILD_DIR)/test_lru
+INTEGRATION_TEST = $(BUILD_DIR)/test_integration
 
 # Source files
-MAIN_SRC := src/main.cpp
-HASHMAP_SRC := src/data/hashmap.cpp
-LRU_SRC := src/data/lru.cpp
-TEST_HASHMAP_SRC := tests/test_hashmap.cpp
-TEST_LRU_SRC := tests/test_lru.cpp
+MAIN_SRC = $(SRC_DIR)/main.cpp
+DATA_SRC = $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp
 
-# Binaries
-MAIN_BIN := $(BUILD_DIR)/pancache_main.exe
-TEST_HASHMAP_BIN := $(BUILD_DIR)/test_hashmap.exe
-TEST_LRU_BIN := $(BUILD_DIR)/test_lru.exe
+# Cross-platform mkdir command
+MKDIR_P = if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 
-# Default target
-all: $(MAIN_BIN) $(TEST_HASHMAP_BIN) $(TEST_LRU_BIN)
+# ---------- MAIN BUILD ----------
+all: $(MAIN_TARGET)
 
-# --- Build rules ---
+$(MAIN_TARGET): $(MAIN_SRC) $(DATA_SRC)
+	@$(MKDIR_P)
+	$(CXX) $(CXXFLAGS) $(MAIN_SRC) $(DATA_SRC) -o $(MAIN_TARGET)
+	@echo "Built main executable: $(MAIN_TARGET)"
 
-$(MAIN_BIN): $(MAIN_SRC) $(HASHMAP_SRC) $(LRU_SRC)
-	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo Built main executable: $@
+# ---------- TEST BUILDS ----------
+$(HASHMAP_TEST): $(TEST_DIR)/test_hashmap.cpp $(DATA_DIR)/hashmap.cpp
+	@$(MKDIR_P)
+	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_hashmap.cpp $(DATA_DIR)/hashmap.cpp -o $(HASHMAP_TEST)
+	@echo "Built HashMap test: $(HASHMAP_TEST)"
 
-$(TEST_HASHMAP_BIN): $(HASHMAP_SRC) $(TEST_HASHMAP_SRC)
-	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo Built HashMap test executable: $@
+$(LRU_TEST): $(TEST_DIR)/test_lru.cpp $(DATA_DIR)/lru.cpp
+	@$(MKDIR_P)
+	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_lru.cpp $(DATA_DIR)/lru.cpp -o $(LRU_TEST)
+	@echo "Built LRU test: $(LRU_TEST)"
 
-$(TEST_LRU_BIN): $(LRU_SRC) $(HASHMAP_SRC) $(TEST_LRU_SRC)
-	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo Built LRU test executable: $@
+$(INTEGRATION_TEST): $(TEST_DIR)/test_integration.cpp $(DATA_SRC)
+	@$(MKDIR_P)
+	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_integration.cpp $(DATA_SRC) -o $(INTEGRATION_TEST)
+	@echo "Built Integration test (LRU + HashMap): $(INTEGRATION_TEST)"
 
-# --- Utility targets ---
+# ---------- TEST RUNNERS ----------
+test_hashmap: $(HASHMAP_TEST)
+	@echo "Running HashMap test..."
+	@$(HASHMAP_TEST)
 
-run: $(MAIN_BIN)
-	@echo Running main program...
-	@$(MAIN_BIN)
+test_lru: $(LRU_TEST)
+	@echo "Running LRU test..."
+	@$(LRU_TEST)
 
-test: $(TEST_HASHMAP_BIN) $(TEST_LRU_BIN)
-	@echo Running HashMap tests...
-	@$(TEST_HASHMAP_BIN)
-	@echo Running LRU tests...
-	@$(TEST_LRU_BIN)
+test_integration: $(INTEGRATION_TEST)
+	@echo "Running Integration test (LRU + HashMap)..."
+	@$(INTEGRATION_TEST)
 
+# Run all tests
+test_all: test_hashmap test_lru test_integration
+
+# ---------- CLEAN ----------
 clean:
-	@if exist $(BUILD_DIR) rmdir /s /q $(BUILD_DIR)
-	@echo Cleaned build directory.
-
-.PHONY: all clean run test
+	@if exist $(BUILD_DIR) (rmdir /s /q $(BUILD_DIR)) else (echo "No build directory found.")
+	@echo "🧹 Cleaned build artifacts."
