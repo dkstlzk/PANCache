@@ -25,7 +25,7 @@ QUIT
 
 
 ## Architecture Modules
-
+```text
 PANCache/
 ├── include/
 │   ├── data/
@@ -72,6 +72,7 @@ PANCache/
 │
 ├── Makefile
 └── README.md
+```
 
 ## Testing
 Unit tests and integration tests should cover:
