@@ -12,6 +12,7 @@ PANCache is a **high-performance in-memory key-value store** that demonstrates p
 - (Optional) Bloom filter for fast existence checks; persistence snapshot (AOF-like) for extra credit
 
 ## Core Commands / API
+```text
 SET key value [TTL_seconds]
 GET key
 DEL key
@@ -22,7 +23,7 @@ DEPEND keyA keyB
 INFO
 SAVE / LOAD
 QUIT
-
+```
 
 ## Architecture Modules
 ```text
