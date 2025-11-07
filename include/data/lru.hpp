@@ -8,21 +8,21 @@ using namespace std;
 template <typename K, typename V>
 class LRUCache {
 private:
-    struct Node{
+    struct Node {
         K key;
         V value;
         Node* prev;
         Node* next;
-        Node(K k, V v) :key(k), value(v), prev(nullptr), next(nullptr) {}
+        Node(K k, V v) : key(k), value(v), prev(nullptr), next(nullptr) {}
     };
 
     int capacity;
     int count;
-
     Node* head;
     Node* tail;
 
-    HashMap<K, Node*> cacheMap; 
+    // ✅ Store as void* to avoid HashMap<K, Node*> linker issues
+    HashMap<K, void*> cacheMap;
 
     void moveToFront(Node* node);
     void removeNode(Node* node);
@@ -37,4 +37,4 @@ public:
     void display() const;
 };
 
-#endif
+#endif // LRU_CACHE_HPP

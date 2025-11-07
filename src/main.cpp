@@ -1,21 +1,12 @@
-#include "../include/data/hashmap.hpp"
 #include <iostream>
+using namespace std;
 
-int main(){
-    HashMap<string, int> cache;
-    cache.insert("alpha", 1);
-    cache.insert("beta", 2);
-    cache.insert("gamma", 3);
-
-    if (auto val= cache.get("beta"))
-        cout << "beta = " << *val << "\n";
-    else
-        cout << "beta not found\n";
-
-    cache.erase("beta");
-    cout << "After erase, contains beta? " 
-              << (cache.contains("beta") ? "Yes": "No") << "\n";
-
-    cout << "Size: " << cache.size() << endl;
+int main() {
+    cout << "PANCache Core Build Successful\n" << endl;
+    cout << "Use the following commands to test modules:" << std::endl;
+    cout << "  make test_hashmap     → Test HashMap module" << std::endl;
+    cout << "  make test_lru         → Test LRUCache module" << std::endl;
+    cout << "  make test_ttl         → Test TTLHeap module" << std::endl;
+    cout << "  make test_integration → Run full integration test" << std::endl;
     return 0;
 }

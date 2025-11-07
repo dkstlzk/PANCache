@@ -1,4 +1,3 @@
-// hashmap.hpp
 #ifndef HASHMAP_HPP
 #define HASHMAP_HPP
 
@@ -10,37 +9,38 @@
 
 using namespace std;
 
+// Separate-chaining HashMap (templated)
 template <typename K, typename V>
-class HashMap{
+class HashMap {
 private:
-    struct Entry{
+    struct Entry {
         K key;
         V value;
         Entry* next;
-        Entry(const K& k, const V& v): key(k), value(v), next(nullptr){}
+        Entry(const K& k, const V& v): key(k), value(v), next(nullptr) {}
     };
 
+    size_t capacity;           // keep order: capacity -> count -> table
     size_t count;
-    size_t capacity;
     vector<Entry*> table;
 
-    const float load_factor=0.75;
+    const float load_factor=0.75f;
 
-    size_t hashKey(const K& key) const{
-        return hash<K>{}(key)%capacity;
-    }
-
+    size_t hashKey(const K& key) const { return hash<K>{}(key) % capacity; }
     void resizeIfNeeded();
 
 public:
-    explicit HashMap(size_t initial_capacity=16);
+    HashMap();                          // default: capacity = 16
+    explicit HashMap(size_t initial_capacity);
     ~HashMap();
 
+    // ops
     void insert(const K& key, const V& value);
     optional<V> get(const K& key) const;
     bool erase(const K& key);
     bool contains(const K& key) const;
 
+    // utils
     size_t size() const { return count; }
     void clear();
 };

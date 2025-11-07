@@ -4,7 +4,7 @@
 int main() {
     std::cout << "Testing LRUCache + HashMap integration...\n";
 
-    // Must specify template types (since LRUCache is a template)
+    // must specify template types (since LRUCache is a template)
     LRUCache<int, int> cache(3);
 
     cache.put(1, 10);
