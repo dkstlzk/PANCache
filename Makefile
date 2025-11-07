@@ -1,67 +1,98 @@
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Iinclude
+# =============================
+# PANCache Build System
+# =============================
 
-# Directories
-SRC_DIR = src
-BUILD_DIR = build
-DATA_DIR = $(SRC_DIR)/data
-TEST_DIR = tests
+CXX := g++
+CXXFLAGS := -std=c++17 -Wall -Wextra -O2 -Iinclude
 
-# Output executables
-MAIN_TARGET = $(BUILD_DIR)/pancache_main
-HASHMAP_TEST = $(BUILD_DIR)/test_hashmap
-LRU_TEST = $(BUILD_DIR)/test_lru
-INTEGRATION_TEST = $(BUILD_DIR)/test_integration
+# --- Directories ---
+SRC_DIR := src
+DATA_DIR := $(SRC_DIR)/data
+TEST_DIR := tests
+BUILD_DIR := build
 
-# Source files
-MAIN_SRC = $(SRC_DIR)/main.cpp
-DATA_SRC = $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp
+# --- Source files ---
+MAIN_SRC := $(SRC_DIR)/main.cpp
+DATA_SRC := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp
 
-# Cross-platform mkdir command
-MKDIR_P = if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
+# --- Targets ---
+MAIN_TARGET := $(BUILD_DIR)/pancache_main
+HASHMAP_TEST := $(BUILD_DIR)/test_hashmap
+LRU_TEST := $(BUILD_DIR)/test_lru
+TTL_TEST := $(BUILD_DIR)/test_heap
+INTEGRATION_TEST := $(BUILD_DIR)/test_integration
 
-# ---------- MAIN BUILD ----------
-all: $(MAIN_TARGET)
+# --- Ensure build directory exists ---
+MKDIR_P = mkdir -p $(BUILD_DIR)
 
+# =============================
+# Build Targets
+# =============================
+
+all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEGRATION_TEST)
+
+# ---------- MAIN EXECUTABLE ----------
 $(MAIN_TARGET): $(MAIN_SRC) $(DATA_SRC)
 	@$(MKDIR_P)
-	$(CXX) $(CXXFLAGS) $(MAIN_SRC) $(DATA_SRC) -o $(MAIN_TARGET)
-	@echo "Built main executable: $(MAIN_TARGET)"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "✅ Built main executable: $(MAIN_TARGET)"
 
-# ---------- TEST BUILDS ----------
-$(HASHMAP_TEST): $(TEST_DIR)/test_hashmap.cpp $(DATA_DIR)/hashmap.cpp
+# ---------- HASHMAP TEST ----------
+$(HASHMAP_TEST): $(DATA_DIR)/hashmap.cpp $(TEST_DIR)/test_hashmap.cpp
 	@$(MKDIR_P)
-	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_hashmap.cpp $(DATA_DIR)/hashmap.cpp -o $(HASHMAP_TEST)
-	@echo "Built HashMap test: $(HASHMAP_TEST)"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "🧩 Built HashMap test: $(HASHMAP_TEST)"
 
-$(LRU_TEST): $(TEST_DIR)/test_lru.cpp $(DATA_DIR)/lru.cpp
+# ---------- LRU TEST ----------
+$(LRU_TEST): $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(TEST_DIR)/test_lru.cpp
 	@$(MKDIR_P)
-	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_lru.cpp $(DATA_DIR)/lru.cpp -o $(LRU_TEST)
-	@echo "Built LRU test: $(LRU_TEST)"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "🔁 Built LRU test: $(LRU_TEST)"
 
-$(INTEGRATION_TEST): $(TEST_DIR)/test_integration.cpp $(DATA_SRC)
+# ---------- TTL HEAP TEST ----------
+$(TTL_TEST): $(DATA_DIR)/ttl_heap.cpp $(TEST_DIR)/test_heap.cpp
 	@$(MKDIR_P)
-	$(CXX) $(CXXFLAGS) $(TEST_DIR)/test_integration.cpp $(DATA_SRC) -o $(INTEGRATION_TEST)
-	@echo "Built Integration test (LRU + HashMap): $(INTEGRATION_TEST)"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "⏳ Built TTL Heap test: $(TTL_TEST)"
 
-# ---------- TEST RUNNERS ----------
+# ---------- INTEGRATION TEST ----------
+$(INTEGRATION_TEST): $(DATA_SRC) $(TEST_DIR)/test_integration.cpp
+	@$(MKDIR_P)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "🧠 Built Integration test: $(INTEGRATION_TEST)"
+
+# =============================
+# Run Targets
+# =============================
+
+run:
+	@echo "🚀 Running main program..."
+	@$(MAIN_TARGET)
+
 test_hashmap: $(HASHMAP_TEST)
-	@echo "Running HashMap test..."
+	@echo "🧪 Running HashMap test..."
 	@$(HASHMAP_TEST)
 
 test_lru: $(LRU_TEST)
-	@echo "Running LRU test..."
+	@echo "🧪 Running LRU test..."
 	@$(LRU_TEST)
 
+test_ttl: $(TTL_TEST)
+	@echo "🧪 Running TTL Heap test..."
+	@$(TTL_TEST)
+
 test_integration: $(INTEGRATION_TEST)
-	@echo "Running Integration test (LRU + HashMap)..."
+	@echo "🧪 Running Integration test..."
 	@$(INTEGRATION_TEST)
 
-# Run all tests
-test_all: test_hashmap test_lru test_integration
+test_all: test_hashmap test_lru test_ttl test_integration
 
-# ---------- CLEAN ----------
+# =============================
+# Cleanup
+# =============================
+
 clean:
-	@if exist $(BUILD_DIR) (rmdir /s /q $(BUILD_DIR)) else (echo "No build directory found.")
-	@echo "🧹 Cleaned build artifacts."
+	rm -rf $(BUILD_DIR)
+	@echo "🧹 Cleaned build directory."
+
+.PHONY: all clean run test_hashmap test_lru test_ttl test_integration test_all
