@@ -1,5 +1,4 @@
-# ---- Toolchain ----
-CXX       := g++
+# toolchain
 CXXSTD    := -std=c++17
 CXXWARN   := -Wall -Wextra
 CXXOPT    := -O2
@@ -17,7 +16,7 @@ OBJ_DIR    := $(BUILD_DIR)/obj
 
 # sources
 MAIN_SRC   := $(SRC_DIR)/main.cpp
-DATA_SRC   := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp
+DATA_SRC   := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp 
 TEST_HASHMAP_SRC := $(TEST_DIR)/test_hashmap.cpp
 TEST_LRU_SRC     := $(TEST_DIR)/test_lru.cpp
 TEST_TTL_SRC     := $(TEST_DIR)/test_heap.cpp
@@ -29,6 +28,8 @@ HASHMAP_TEST := $(BUILD_DIR)/test_hashmap
 LRU_TEST     := $(BUILD_DIR)/test_lru
 TTL_TEST     := $(BUILD_DIR)/test_ttl
 INTEG_TEST   := $(BUILD_DIR)/test_integration
+SKIPLIST_TEST := $(BUILD_DIR)/test_skiplist
+
 
 # objects
 MAIN_OBJ   := $(OBJ_DIR)/main.o
@@ -68,7 +69,13 @@ $(TTL_TEST): $(TTTL_OBJ) $(OBJ_DIR)/data_ttl_heap.o | $(BUILD_DIR)
 $(INTEG_TEST): $(TINT_OBJ) $(DATA_OBJ) | $(BUILD_DIR)
 	@echo "Linking $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "Built Integration test: $@"
+	@echo "Built Integration test: $@" 
+
+$(SKIPLIST_TEST): $(TEST_DIR)/test_skiplist.cpp
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "Built SkipList test: $(SKIPLIST_TEST)"
+
 
 # COMPILE RULES
 
@@ -119,14 +126,18 @@ test_lru: $(LRU_TEST)
 	@$(LRU_TEST)
 
 test_ttl: $(TTL_TEST)
-	@echo "🧪 Running TTL Heap test…"
+	@echo "Running TTL Heap test…"
 	@$(TTL_TEST)
 
 test_integration: $(INTEG_TEST)
-	@echo "🧪 Running Integration test…"
+	@echo "Running Integration test…"
 	@$(INTEG_TEST)
 
-test_all: test_hashmap test_lru test_ttl test_integration
+test_skiplist: $(SKIPLIST_TEST)
+	@echo "Running SkipList test..."
+	@$(SKIPLIST_TEST)
+
+test_all: test_hashmap test_lru test_ttl test_skiplist test_integration
 
 clean:
 	@rm -rf $(BUILD_DIR)
