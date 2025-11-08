@@ -1,56 +1,87 @@
-# toolchain
+# ===============================
+# 🧩 Cross-Platform Directory Handling
+# ===============================
+ifeq ($(OS),Windows_NT)
+    # Windows (MinGW, Git Bash, PowerShell)
+    MKDIR_CMD = if not exist "$(subst /,\\,$(1))" mkdir "$(subst /,\\,$(1))"
+    RMDIR_CMD = if exist "$(subst /,\\,$(BUILD_DIR))" rmdir /s /q "$(subst /,\\,$(BUILD_DIR))"
+else
+    # Linux/macOS
+    MKDIR_CMD = mkdir -p $(1)
+    RMDIR_CMD = rm -rf $(BUILD_DIR)
+endif
+
+# ===============================
+# ⚙️ Toolchain Configuration
+# ===============================
 CXXSTD    := -std=c++17
 CXXWARN   := -Wall -Wextra
 CXXOPT    := -O2
 INCLUDES  := -Iinclude
-DEPFLAGS  := -MMD -MP              # auto-generate header dependencies
-# SANITIZE := -fsanitize=address -fno-omit-frame-pointer  # <- enable while debugging
+DEPFLAGS  := -MMD -MP
+# SANITIZE := -fsanitize=address -fno-omit-frame-pointer
 CXXFLAGS  := $(CXXSTD) $(CXXWARN) $(CXXOPT) $(INCLUDES) $(DEPFLAGS) $(SANITIZE)
 
-# layout
+# ===============================
+# 📁 Project Layout
+# ===============================
 SRC_DIR    := src
 DATA_DIR   := $(SRC_DIR)/data
 TEST_DIR   := tests
 BUILD_DIR  := build
 OBJ_DIR    := $(BUILD_DIR)/obj
 
-# sources
+# ===============================
+# 🧱 Source Files
+# ===============================
 MAIN_SRC   := $(SRC_DIR)/main.cpp
-DATA_SRC   := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp 
+DATA_SRC := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp $(DATA_DIR)/graph.cpp
+
 TEST_HASHMAP_SRC := $(TEST_DIR)/test_hashmap.cpp
 TEST_LRU_SRC     := $(TEST_DIR)/test_lru.cpp
 TEST_TTL_SRC     := $(TEST_DIR)/test_heap.cpp
 TEST_INT_SRC     := $(TEST_DIR)/test_integration.cpp
+TEST_SKIPLIST_SRC := $(TEST_DIR)/test_skiplist.cpp
+TEST_GRAPH_SRC := $(TEST_DIR)/test_graph.cpp
 
-# binaries
+# ===============================
+# 🏗️ Output Binaries
+# ===============================
 MAIN_TARGET  := $(BUILD_DIR)/pancache_main
 HASHMAP_TEST := $(BUILD_DIR)/test_hashmap
 LRU_TEST     := $(BUILD_DIR)/test_lru
 TTL_TEST     := $(BUILD_DIR)/test_ttl
 INTEG_TEST   := $(BUILD_DIR)/test_integration
 SKIPLIST_TEST := $(BUILD_DIR)/test_skiplist
+GRAPH_TEST     := $(BUILD_DIR)/test_graph
 
-
-# objects
+# ===============================
+# 🧩 Object Files
+# ===============================
 MAIN_OBJ   := $(OBJ_DIR)/main.o
 DATA_OBJ   := $(patsubst $(DATA_DIR)/%.cpp,$(OBJ_DIR)/data_%.o,$(DATA_SRC))
 THASH_OBJ  := $(OBJ_DIR)/t_hashmap.o
 TLRU_OBJ   := $(OBJ_DIR)/t_lru.o
 TTTL_OBJ   := $(OBJ_DIR)/t_ttl.o
 TINT_OBJ   := $(OBJ_DIR)/t_integration.o
+TOBJ_GRAPH     := $(OBJ_DIR)/t_graph.o
 
 .DEFAULT_GOAL := help
 
-# meta targets
-all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEG_TEST)
+# ===============================
+# 🎯 Meta Targets
+# ===============================
+all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEG_TEST) $(GRAPH_TEST)
 
-# main binary
+
+# ===============================
+# 🧩 Build Rules
+# ===============================
 $(MAIN_TARGET): $(MAIN_OBJ) $(DATA_OBJ) | $(BUILD_DIR)
 	@echo "Linking $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
 	@echo "Built main: $@"
 
-# tests
 $(HASHMAP_TEST): $(THASH_OBJ) $(OBJ_DIR)/data_hashmap.o | $(BUILD_DIR)
 	@echo "Linking $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
@@ -69,31 +100,36 @@ $(TTL_TEST): $(TTTL_OBJ) $(OBJ_DIR)/data_ttl_heap.o | $(BUILD_DIR)
 $(INTEG_TEST): $(TINT_OBJ) $(DATA_OBJ) | $(BUILD_DIR)
 	@echo "Linking $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "Built Integration test: $@" 
+	@echo "Built Integration test: $@"
 
-$(SKIPLIST_TEST): $(TEST_DIR)/test_skiplist.cpp
-	@mkdir -p $(BUILD_DIR)
+$(SKIPLIST_TEST): $(TEST_SKIPLIST_SRC) | $(BUILD_DIR)
+	@echo "Compiling SkipList test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "Built SkipList test: $(SKIPLIST_TEST)"
+	@echo "Built SkipList test: $@"
+
+$(GRAPH_TEST): $(TOBJ_GRAPH) $(OBJ_DIR)/data_graph.o | $(BUILD_DIR)
+	@echo "Linking $@"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "Built Graph test: $@"
 
 
-# COMPILE RULES
-
-# ensure directories exist
+# ===============================
+# 🧰 Directory Handling
+# ===============================
 $(BUILD_DIR) $(OBJ_DIR):
-	@mkdir -p $@
+	@$(call MKDIR_CMD,$@)
 
-# pattern rule: compile .cpp -> .o with depfile
+# ===============================
+# 🧱 Compilation Rules
+# ===============================
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# data objects
 $(OBJ_DIR)/data_%.o: $(DATA_DIR)/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# test objects
 $(OBJ_DIR)/t_hashmap.o: $(TEST_HASHMAP_SRC) | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -110,49 +146,65 @@ $(OBJ_DIR)/t_integration.o: $(TEST_INT_SRC) | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# include auto-generated dependency files (safe if missing)
+$(OBJ_DIR)/t_graph.o: $(TEST_GRAPH_SRC) | $(OBJ_DIR)
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+# ===============================
+# 🧾 Dependencies
+# ===============================
 -include $(wildcard $(OBJ_DIR)/*.d)
 
+# ===============================
+# ▶️ Run Commands
+# ===============================
 run_main: $(MAIN_TARGET)
-	@echo "Running PANCache build verification...""
+	@echo "Running PANCache main..."
 	@$(MAIN_TARGET)
 
 test_hashmap: $(HASHMAP_TEST)
-	@echo "Running HashMap test…"
+	@echo "Running HashMap test..."
 	@$(HASHMAP_TEST)
 
 test_lru: $(LRU_TEST)
-	@echo "Running LRU test…"
+	@echo "Running LRU test..."
 	@$(LRU_TEST)
 
 test_ttl: $(TTL_TEST)
-	@echo "Running TTL Heap test…"
+	@echo "Running TTL Heap test..."
 	@$(TTL_TEST)
 
 test_integration: $(INTEG_TEST)
-	@echo "Running Integration test…"
+	@echo "Running Integration test..."
 	@$(INTEG_TEST)
 
 test_skiplist: $(SKIPLIST_TEST)
 	@echo "Running SkipList test..."
 	@$(SKIPLIST_TEST)
 
-test_all: test_hashmap test_lru test_ttl test_skiplist test_integration
+test_graph: $(GRAPH_TEST)
+	@echo "Running Graph test..."
+	@$(GRAPH_TEST)
 
+test_all: test_hashmap test_lru test_ttl test_graph test_skiplist test_integration
+
+# ===============================
+# 🧹 Clean + Help
+# ===============================
 clean:
-	@rm -rf $(BUILD_DIR)
+	@$(RMDIR_CMD)
 	@echo "Cleaned build directory."
 
 help:
 	@echo "PANCache — Make targets:"
-	@echo "  make all              # Build main + all tests"
-	@echo "  make $(MAIN_TARGET)   # Build main only"
-	@echo "  make run_hashmap      # Run main (HashMap demo)"
-	@echo "  make test_hashmap     # Build+run HashMap test"
-	@echo "  make test_lru         # Build+run LRU test"
-	@echo "  make test_ttl         # Build+run TTL Heap test"
-	@echo "  make test_integration # Build+run integration test"
-	@echo "  make clean            # Remove build artifacts"
-	@echo "  (set SANITIZE in Makefile to enable ASan)"
+	@echo "  mingw32-make all              # Build main + all tests"
+	@echo "  mingw32-make run_main         # Run main program"
+	@echo "  mingw32-make test_hashmap     # Build+run HashMap test"
+	@echo "  mingw32-make test_lru         # Build+run LRU test"
+	@echo "  mingw32-make test_ttl         # Build+run TTL Heap test"
+	@echo "  mingw32-make test_integration # Build+run integration test"
+	@echo "  mingw32-make clean            # Remove build artifacts"
+	@echo "  (set SANITIZE in Makefile to enable AddressSanitizer)"
 
-.PHONY: all clean help run_hashmap test_hashmap test_lru test_ttl test_integration test_all
+.PHONY: all clean help run_main test_hashmap test_lru test_ttl test_integration test_all
