@@ -21,12 +21,11 @@ private:
     Node* head;
     Node* tail;
 
-    // ✅ Store as void* to avoid HashMap<K, Node*> linker issues
     HashMap<K, void*> cacheMap;
 
     void moveToFront(Node* node);
     void removeNode(Node* node);
-    void addToFront(Node* node);
+    void addToFront (Node* node);
 
 public:
     explicit LRUCache(int cap);
@@ -35,6 +34,8 @@ public:
     void put(const K& key, const V& value);
     V get(const K& key);
     void display() const;
+    bool erase(const K& key);
+    size_t size() const { return count; }
 };
 
-#endif // LRU_CACHE_HPP
+#endif

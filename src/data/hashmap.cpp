@@ -1,26 +1,22 @@
 #include "data/hashmap.hpp"
 
-// default constructor
 template <typename K, typename V>
 HashMap<K, V>::HashMap()
     : capacity(16), count(0), table(16, nullptr) {}
 
-// parameterized constructor
 template <typename K, typename V>
 HashMap<K, V>::HashMap(size_t initial_capacity)
-    : capacity(initial_capacity), count(0), table(initial_capacity, nullptr) {}
+    : capacity (initial_capacity), count(0), table( initial_capacity, nullptr) {}
 
-// destructor
 template <typename K, typename V>
 HashMap<K, V>::~HashMap() {
     clear();
 }
 
-// clear all entries
 template <typename K, typename V>
 void HashMap<K, V>::clear() {
     for (auto& head : table) {
-        Entry* curr = head;
+        Entry* curr=head;
         while (curr) {
             Entry* tmp = curr;
             curr = curr->next;
@@ -30,22 +26,20 @@ void HashMap<K, V>::clear() {
     }
     count = 0;
 }
-
-// resize when load factor exceeded
 template <typename K, typename V>
 void HashMap<K, V>::resizeIfNeeded() {
     if (static_cast<float>(count) / static_cast<float>(capacity) < load_factor)
         return;
 
     size_t new_capacity = capacity * 2;
-    vector<Entry*> new_table(new_capacity, nullptr);
+    vector<Entry*>new_table(new_capacity, nullptr);
 
     for (auto& head : table) {
         Entry* curr = head;
         while (curr) {
             Entry* next = curr->next;
             size_t idx = hash<K>{}(curr->key) % new_capacity;
-            curr->next = new_table[idx];
+            curr->next =new_table[idx];
             new_table[idx] = curr;
             curr = next;
         }
@@ -55,7 +49,6 @@ void HashMap<K, V>::resizeIfNeeded() {
     capacity = new_capacity;
 }
 
-// insert / update
 template <typename K, typename V>
 void HashMap<K, V>::insert(const K& key, const V& value) {
     resizeIfNeeded();
@@ -63,20 +56,19 @@ void HashMap<K, V>::insert(const K& key, const V& value) {
 
     Entry* curr = table[idx];
     while (curr) {
-        if (curr->key == key) {
-            curr->value = value; // update
+        if (curr->key==key) {
+            curr->value=value; 
             return;
         }
         curr = curr->next;
     }
 
-    Entry* e = new Entry(key, value);
+    Entry* e=new Entry(key, value);
     e->next = table[idx];
     table[idx] = e;
     ++count;
 }
 
-// get (optional)
 template <typename K, typename V>
 optional<V> HashMap<K, V>::get(const K& key) const {
     size_t idx = hashKey(key);
@@ -88,7 +80,6 @@ optional<V> HashMap<K, V>::get(const K& key) const {
     return nullopt;
 }
 
-// erase
 template <typename K, typename V>
 bool HashMap<K, V>::erase(const K& key) {
     size_t idx = hashKey(key);
@@ -118,6 +109,6 @@ template class HashMap<string, int>;
 template class HashMap<int, string>;
 template class HashMap<int, int>;
 
-// prefer void* to avoid including LRU in here:
 template class HashMap<int, void*>;
 template class HashMap<string, void*>;
+template class HashMap<string, string>;

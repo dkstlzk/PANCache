@@ -2,7 +2,6 @@
 #include <algorithm>
 using namespace std;
 
-// insert key with TTL (seconds)
 template <typename Key, typename Value>
 void TTLHeap<Key, Value>::insert(const Key& key, const Value& value, int ttl_seconds) {
     auto now= chrono::steady_clock::now();
@@ -13,9 +12,9 @@ void TTLHeap<Key, Value>::insert(const Key& key, const Value& value, int ttl_sec
     heapifyUp(heap_.size()-1);
 }
 
-// get value if not expired (auto-cleans expired before lookup)
 template <typename Key, typename Value>
 bool TTLHeap<Key, Value>::get(const Key& key, Value& value){
+
     removeExpired();
     auto it= map_.find(key);
     if (it!=map_.end()) {
@@ -25,26 +24,27 @@ bool TTLHeap<Key, Value>::get(const Key& key, Value& value){
     return false;
 }
 
-// pop all expired items based on current time
 template <typename Key, typename Value>
-void TTLHeap<Key, Value>::removeExpired() {
-    auto now= chrono::steady_clock::now();
+vector<Key> TTLHeap<Key, Value>::removeExpired() {
+    auto now = chrono::steady_clock::now();
+    vector<Key> removed;
 
-    // lazy removal: remove earliest while expired
     while (!heap_.empty() && heap_.front().expiry <= now) {
-        Key key= heap_.front().key;
+        Key key = heap_.front().key;
 
-        // pop top of heap (vector) and re-heapify
         swap(heap_.front(), heap_.back());
         heap_.pop_back();
         if (!heap_.empty()) heapifyDown(0);
 
-        // if the map still has this key and its expiry <= now, erase
-        auto it= map_.find(key);
-        if (it!=map_.end() && it->second.second <= now) {
+        auto it = map_.find(key);
+        if (it != map_.end() && it->second.second <= now) {
+            removed.push_back(key);
             map_.erase(it);
         }
+
     }
+
+    return removed;
 }
 
 template <typename Key, typename Value>
@@ -52,12 +52,11 @@ size_t TTLHeap<Key, Value>::size() const {
     return map_.size();
 }
 
-// Standard binary heap helpers (min-heap by expiry)
 template <typename Key, typename Value>
 void TTLHeap<Key, Value>::heapifyUp(size_t index) {
     while (index>0) {
         size_t parent= (index-1)/2;
-        if (heap_[parent]<heap_[index]) break; // parent earlier than child? OK
+        if (heap_[parent]<heap_[index]) break; 
         swapNodes(parent, index);
         index= parent;
     }
@@ -65,6 +64,7 @@ void TTLHeap<Key, Value>::heapifyUp(size_t index) {
 
 template <typename Key, typename Value>
 void TTLHeap<Key, Value>::heapifyDown(size_t index) {
+
     size_t n=heap_.size();
     while (true) {
         size_t left= 2*index + 1;
@@ -78,12 +78,14 @@ void TTLHeap<Key, Value>::heapifyDown(size_t index) {
         swapNodes(index, smallest);
         index=smallest;
     }
+
 }
 
 template <typename Key, typename Value>
 void TTLHeap<Key, Value>::swapNodes(size_t i, size_t j) {
     swap(heap_[i], heap_[j]);
 }
+
 
 template class TTLHeap<string, string>;
 template class TTLHeap<int, string>;

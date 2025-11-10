@@ -36,6 +36,7 @@ OBJ_DIR    := $(BUILD_DIR)/obj
 # ===============================
 MAIN_SRC   := $(SRC_DIR)/main.cpp
 DATA_SRC := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp $(DATA_DIR)/graph.cpp
+DATA_SRC := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp $(DATA_DIR)/graph.cpp $(DATA_DIR)/cache_engine.cpp
 
 TEST_HASHMAP_SRC := $(TEST_DIR)/test_hashmap.cpp
 TEST_LRU_SRC     := $(TEST_DIR)/test_lru.cpp
@@ -43,6 +44,7 @@ TEST_TTL_SRC     := $(TEST_DIR)/test_heap.cpp
 TEST_INT_SRC     := $(TEST_DIR)/test_integration.cpp
 TEST_SKIPLIST_SRC := $(TEST_DIR)/test_skiplist.cpp
 TEST_GRAPH_SRC := $(TEST_DIR)/test_graph.cpp
+TEST_CACHE_SRC := $(TEST_DIR)/test_cache.cpp
 
 # ===============================
 # 🏗️ Output Binaries
@@ -54,6 +56,7 @@ TTL_TEST     := $(BUILD_DIR)/test_ttl
 INTEG_TEST   := $(BUILD_DIR)/test_integration
 SKIPLIST_TEST := $(BUILD_DIR)/test_skiplist
 GRAPH_TEST     := $(BUILD_DIR)/test_graph
+CACHE_TEST     := $(BUILD_DIR)/test_cache
 
 # ===============================
 # 🧩 Object Files
@@ -71,7 +74,7 @@ TOBJ_GRAPH     := $(OBJ_DIR)/t_graph.o
 # ===============================
 # 🎯 Meta Targets
 # ===============================
-all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEG_TEST) $(GRAPH_TEST)
+all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEG_TEST) $(GRAPH_TEST) $(CACHE_TEST)
 
 
 # ===============================
@@ -112,6 +115,11 @@ $(GRAPH_TEST): $(TOBJ_GRAPH) $(OBJ_DIR)/data_graph.o | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 	@echo "Built Graph test: $@"
 
+$(CACHE_TEST): $(OBJ_DIR)/t_cache.o $(OBJ_DIR)/data_cache_engine.o $(OBJ_DIR)/data_hashmap.o $(OBJ_DIR)/data_lru.o $(OBJ_DIR)/data_ttl_heap.o $(OBJ_DIR)/data_graph.o | $(BUILD_DIR)
+	@echo "Linking $@"
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	@echo "Built CacheEngine test: $@"
+
 
 # ===============================
 # 🧰 Directory Handling
@@ -147,6 +155,10 @@ $(OBJ_DIR)/t_integration.o: $(TEST_INT_SRC) | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/t_graph.o: $(TEST_GRAPH_SRC) | $(OBJ_DIR)
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/t_cache.o: $(TEST_CACHE_SRC) | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
@@ -187,7 +199,12 @@ test_graph: $(GRAPH_TEST)
 	@echo "Running Graph test..."
 	@$(GRAPH_TEST)
 
-test_all: test_hashmap test_lru test_ttl test_graph test_skiplist test_integration
+test_cache: $(CACHE_TEST)
+	@echo "Running CacheEngine test..."
+	@$(CACHE_TEST)
+
+test_all: test_hashmap test_lru test_ttl test_graph test_skiplist test_integration test_cache
+
 
 # ===============================
 # 🧹 Clean + Help

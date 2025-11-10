@@ -43,7 +43,7 @@ void LRUCache<K, V>::moveToFront(Node* node){
 
 template <typename K, typename V>
 void LRUCache<K, V>::put(const K& key, const V& value) {
-    auto nodeOpt= cacheMap.get(key);        // optional<void*>
+    auto nodeOpt= cacheMap.get(key);       
     if (nodeOpt.has_value()) {
         Node* node= static_cast<Node*>(nodeOpt.value());
         node->value= value;
@@ -67,7 +67,7 @@ void LRUCache<K, V>::put(const K& key, const V& value) {
 
 template <typename K, typename V>
 V LRUCache<K, V>::get(const K& key) {
-    auto nodeOpt= cacheMap.get(key);        // optional<void*>
+    auto nodeOpt= cacheMap.get(key);        
     if (!nodeOpt.has_value()) {
         cout << "Key " << key << " not found!\n";
         return V(); // default value
@@ -75,6 +75,18 @@ V LRUCache<K, V>::get(const K& key) {
     Node* node= static_cast<Node*>(nodeOpt.value());
     moveToFront(node);
     return node->value;
+}
+
+template <typename K, typename V>
+bool LRUCache<K, V>::erase(const K& key) {
+    auto nodeOpt = cacheMap.get(key);
+    if (!nodeOpt.has_value()) return false;
+    Node* node = static_cast<Node*>(nodeOpt.value());
+    removeNode(node);
+    cacheMap.erase(key);
+    delete node;
+    --count;
+    return true;
 }
 
 template <typename K, typename V>
@@ -90,3 +102,4 @@ void LRUCache<K, V>::display() const {
 
 template class LRUCache<int, int>;
 template class LRUCache<string, int>;
+template class LRUCache<string, string>;

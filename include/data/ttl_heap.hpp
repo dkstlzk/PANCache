@@ -6,7 +6,6 @@
 #include <utility>
 using namespace std;
 
-// TTLHeap: Time-To-Live Expiration Min-Heap
 template <typename Key, typename Value>
 class TTLHeap{
 public:
@@ -14,10 +13,9 @@ public:
 
     void insert(const Key& key, const Value& value, int ttl_seconds);
 
-    // get value if it exists and hasn't expired
     bool get(const Key& key, Value& value);
 
-    void removeExpired();
+    vector<Key> removeExpired();
 
     size_t size() const;
 
@@ -32,10 +30,10 @@ private:
         }
     };
 
-    unordered_map<Key, pair<Value, TimePoint>> map_;
+    unordered_map<Key,pair<Value, TimePoint>> map_;
     vector<HeapNode> heap_;
 
-    void heapifyUp(size_t index);
+    void heapifyUp (size_t index);
     void heapifyDown(size_t index);
     void swapNodes(size_t i, size_t j);
 };
