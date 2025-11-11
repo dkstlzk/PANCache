@@ -26,7 +26,7 @@ CXXFLAGS  := $(CXXSTD) $(CXXWARN) $(CXXOPT) $(INCLUDES) $(DEPFLAGS)
 # ===============================
 SRC_DIR    := src
 DATA_DIR   := $(SRC_DIR)/data
-DEPEND_DIR := $(SRC_DIR)/depend        # ✅ Keep Graph folder
+DEPEND_DIR := $(SRC_DIR)/depend      
 TEST_DIR   := tests
 BUILD_DIR  := build
 OBJ_DIR    := $(BUILD_DIR)/obj
@@ -36,7 +36,7 @@ OBJ_DIR    := $(BUILD_DIR)/obj
 # ===============================
 MAIN_SRC   := $(SRC_DIR)/main.cpp
 DATA_SRC   := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp
-DEPEND_SRC := $(DEPEND_DIR)/graph.cpp  # ✅ Add graph source
+
 
 TEST_HASHMAP_SRC  := $(TEST_DIR)/test_hashmap.cpp
 TEST_LRU_SRC      := $(TEST_DIR)/test_lru.cpp
@@ -95,10 +95,13 @@ $(TTL_TEST): $(OBJ_DIR)/t_ttl.o $(OBJ_DIR)/data_ttl_heap.o | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@
 	@echo "⏳ Built TTL Heap test: $@"
 
-$(GRAPH_TEST): $(DEPEND_SRC) $(TEST_GRAPH_SRC) | $(BUILD_DIR)
-	@echo "Compiling Graph test..."
-	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "🔗 Built Graph Dependency test: $@"
+$(GRAPH_TEST): $(TEST_GRAPH_SRC) | $(BUILD_DIR)
+
+	@$(call MKDIR_CMD,$(BUILD_DIR))
+	@echo "🔗 Building Graph Dependency test..."
+	$(CXX) $(CXXFLAGS) $(DEPEND_SRC) $(TEST_GRAPH_SRC) -o $(GRAPH_TEST)
+	@echo "✅ Built Graph Dependency test: $(GRAPH_TEST)"
+
 
 $(INTEG_TEST): $(OBJ_DIR)/t_integration.o $(DATA_OBJ) $(DEPEND_SRC) | $(BUILD_DIR)
 	@echo "Linking $@"

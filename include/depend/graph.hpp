@@ -1,51 +1,83 @@
-#ifndef DEPEND_GRAPH_HPP
-#define DEPEND_GRAPH_HPP
-
-#include <string>
+#pragma once
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <queue>
+#include <string>
+#include <algorithm>
 
 namespace PANCache {
 namespace Depend {
 
-/**
- * @brief Directed dependency graph for managing cache key relationships.
- * 
- * Each node represents a cache key.
- * An edge A → B means: B depends on A.
- * If A is deleted/invalidated, B should also be deleted.
- */
 class Graph {
-public:
-    Graph() = default;
-
-    // --- Core Operations ---
-    void addNode(const std::string& key);
-    void addDependency(const std::string& from, const std::string& to);
-    void removeNode(const std::string& key);
-    void removeDependencies(const std::string& key);
-
-    // --- Query Operations ---
-    bool hasNode(const std::string& key) const;
-    std::vector<std::string> getDependents(const std::string& key) const;
-    std::vector<std::string> getAllDependentsRecursive(const std::string& key) const;
-
-    // --- Maintenance ---
-    void clear();
-    size_t size() const { return adjList.size(); }
-
 private:
-    // adjacency list: from -> set of nodes depending on 'from'
-    std::unordered_map<std::string, std::unordered_set<std::string>> adjList;
+    std::unordered_map<std::string, std::vector<std::string>> adj;
 
-    void dfs(const std::string& node,
-             std::unordered_set<std::string>& visited,
-             std::vector<std::string>& result) const;
+public:
+    // Add a dependency edge: A depends on B
+    void addDependency(const std::string &a, const std::string &b) {
+        adj[a].push_back(b);
+        if (adj.find(b) == adj.end()) {
+            adj[b] = {}; // ensure node exists
+        }
+    }
+
+    // Remove all dependencies from a node
+    void removeDependencies(const std::string &node) {
+        adj[node].clear();
+    }
+
+    // Remove a node entirely
+    void removeNode(const std::string &node) {
+        adj.erase(node);
+        for (auto &kv : adj) {
+            auto &list = kv.second;
+            list.erase(std::remove(list.begin(), list.end(), node), list.end());
+        }
+    }
+
+    // Get direct dependents of a node
+    std::vector<std::string> getDependents(const std::string &node) const {
+        auto it = adj.find(node);
+        if (it != adj.end()) return it->second;
+        return {};
+    }
+
+    // Check if a node exists
+    bool hasNode(const std::string &node) const {
+        return adj.find(node) != adj.end();
+    }
+
+    // Get all dependents recursively (BFS)
+    std::vector<std::string> getAllDependentsRecursive(const std::string &node) const {
+        std::vector<std::string> result;
+        std::queue<std::string> q;
+        std::unordered_set<std::string> visited;
+
+        q.push(node);
+        visited.insert(node);
+
+        while (!q.empty()) {
+            std::string current = q.front();
+            q.pop();
+            auto it = adj.find(current);
+            if (it == adj.end()) continue;
+
+            for (auto &dep : it->second) {
+                if (visited.insert(dep).second) {
+                    result.push_back(dep);
+                    q.push(dep);
+                }
+            }
+        }
+        return result;
+    }
+
+    void clear() {
+        adj.clear();
+    }
 };
 
 } // namespace Depend
 } // namespace PANCache
-
-#endif // DEPEND_GRAPH_HPP
