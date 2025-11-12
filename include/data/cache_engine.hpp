@@ -1,40 +1,34 @@
-#ifndef CACHE_ENGINE_HPP
-#define CACHE_ENGINE_HPP
-
-#include "hashmap.hpp"
-#include "lru.hpp"
-#include "ttl_heap.hpp"
-#include "graph.hpp"
-#include <optional>
+#pragma once
 #include <string>
-#include <vector>
+#include <optional>
+#include "data/hashmap.hpp"
+#include "data/lru.hpp"
+#include "data/ttl_heap.hpp"
+#include "depend/graph.hpp"
 
 using namespace std;
 
 class CacheEngine {
-
 public:
-    CacheEngine(size_t capacity = 1000);
+    // Constructors
+    CacheEngine();                  
+    explicit CacheEngine(size_t capacity);  
 
-    void set (const string& key, const string& value, int ttl_seconds = 0);
-    optional<string> get (const string& key);
-    bool del(const string& key);
-    bool expire(const string& key, int ttl_seconds);
+    // Core cache operations
+    void set(const string& key, const string& value);
+    void set(const string& key, const string& value, int ttl_seconds);
 
-    void depend(const string& parent, const string& child);
+    std::optional<string> get(const string& key);
+    void del(const string& key);
+    void expire(const string& key, int ttl_seconds);
+    void link(const string& from, const string& to);
+    void depend(const string& parent, const string& child); // for test compatibility
 
     size_t size() const;
 
-private: 
-
-    HashMap<string, string> store_;
-    LRUCache <string, string> lru_;
-    TTLHeap <string, string> ttl_;
-    Graph deps_;
-
-    void purgeExpired();
-    void cascadeDelete(const string& key);
-    
+private:
+    LRUCache<string, string> lru_;
+    HashMap<string, string> hashmap_;
+    TTLHeap<string, string> ttl_heap_;
+    Graph graph_;
 };
-
-#endif

@@ -9,7 +9,7 @@
 
 using namespace std;
 
-// Separate-chaining HashMap (templated)
+// Separate-chaining HashMap 
 template <typename K, typename V>
 class HashMap {
 private:
@@ -20,13 +20,13 @@ private:
         Entry(const K& k, const V& v): key(k), value(v), next(nullptr) {}
     };
 
-    size_t capacity;           // keep order: capacity -> count -> table
+    size_t capacity;         
     size_t count;
     vector<Entry*> table;
 
     const float load_factor=0.75f;
 
-    size_t hashKey(const K& key) const { return hash<K>{}(key) % capacity; }
+    size_t hashKey(const K& key) const { return hash<K>{}(key)%capacity; }
     void resizeIfNeeded();
 
 public:
@@ -45,4 +45,4 @@ public:
     void clear();
 };
 
-#endif // HASHMAP_HPP
+#endif 

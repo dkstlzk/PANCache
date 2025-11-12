@@ -1,35 +1,31 @@
 #include "data/hashmap.hpp"
 #include <iostream>
 #include <cassert>
+using namespace std;
 
-int main() {
-    HashMap<string, int> map;
+int main(){
+    HashMap<string,int> map;
 
-    // Insert and Get
-    map.insert("apple", 10);
+    map.insert("apple",10);
     map.insert("banana", 20);
-    assert(map.get("apple").value()==10);
-    assert(map.get("banana").value()==20);
+    assert( map.get("apple").value() ==10 );
+    assert( map.get("banana").value()== 20 );
 
-    // Update
     map.insert("apple", 50);
-    assert(map.get("apple").value()==50);
+    assert( map.get("apple").value() == 50 );
 
-    // Contains
-    assert(map.contains("banana"));
-    assert(!map.contains("grape"));
+    assert( map.contains("banana") );
+    assert( !map.contains("grape") );
 
-    // Erase
-    assert(map.erase("banana"));
-    assert(!map.erase("banana"));
-    assert(!map.contains("banana"));
+    assert( map.erase("banana") );
+    assert( !map.erase("banana") );
+    assert( !map.contains("banana") );
 
-    // Resize test
-    for (int i=0; i<100; i++)
-        map.insert("key"+to_string(i), i);
+    for(int i=0; i<100; i++)
+        map.insert("key"+ to_string(i), i);
 
-    assert(map.size()>=100);
+    assert(map.size() >=100);
 
-    cout << "All HashMap tests passed!" << endl;
+    cout<<"All HashMap tests passed!\n"<<endl;
     return 0;
 }

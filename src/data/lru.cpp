@@ -8,56 +8,56 @@ LRUCache<K, V>::LRUCache(int cap)
 
 template <typename K, typename V>
 LRUCache<K, V>::~LRUCache() {
-    Node* curr= head;
+    Node* curr = head;
     while (curr) {
-        Node* temp= curr;
-        curr=curr->next;
+        Node* temp = curr;
+        curr = curr->next;
         delete temp;
     }
 }
 
 template <typename K, typename V>
-void LRUCache<K, V>::removeNode(Node* node){
+void LRUCache<K, V>::removeNode(Node* node) {
     if (!node) return;
     if (node->prev) node->prev->next = node->next;
-    else head= node->next;
+    else head = node->next;
 
     if (node->next) node->next->prev = node->prev;
-    else tail= node->prev;
+    else tail = node->prev;
 }
 
 template <typename K, typename V>
 void LRUCache<K, V>::addToFront(Node* node) {
-    node->prev= nullptr;
-    node->next= head;
+    node->prev = nullptr;
+    node->next = head;
     if (head) head->prev = node;
-    head= node;
-    if (!tail) tail= head;
+    head = node;
+    if (!tail) tail = head;
 }
 
 template <typename K, typename V>
-void LRUCache<K, V>::moveToFront(Node* node){
+void LRUCache<K, V>::moveToFront(Node* node) {
     removeNode(node);
     addToFront(node);
 }
 
 template <typename K, typename V>
 void LRUCache<K, V>::put(const K& key, const V& value) {
-    auto nodeOpt= cacheMap.get(key);       
+    auto nodeOpt = cacheMap.get(key);
     if (nodeOpt.has_value()) {
-        Node* node= static_cast<Node*>(nodeOpt.value());
-        node->value= value;
+        Node* node = static_cast<Node*>(nodeOpt.value());
+        node->value = value;
         moveToFront(node);
         return;
     }
 
     Node* newNode = new Node(key, value);
-    cacheMap.insert(key, static_cast<void*>(newNode));  
+    cacheMap.insert(key, static_cast<void*>(newNode));
     addToFront(newNode);
     count++;
 
-    if (count>capacity) {
-        Node* lru= tail;
+    if (count > capacity) {
+        Node* lru = tail;
         cacheMap.erase(lru->key);
         removeNode(lru);
         delete lru;
@@ -67,12 +67,12 @@ void LRUCache<K, V>::put(const K& key, const V& value) {
 
 template <typename K, typename V>
 V LRUCache<K, V>::get(const K& key) {
-    auto nodeOpt= cacheMap.get(key);        
+    auto nodeOpt = cacheMap.get(key);
     if (!nodeOpt.has_value()) {
         cout << "Key " << key << " not found!\n";
-        return V(); // default value
+        return V();  // default value
     }
-    Node* node= static_cast<Node*>(nodeOpt.value());
+    Node* node = static_cast<Node*>(nodeOpt.value());
     moveToFront(node);
     return node->value;
 }
@@ -81,11 +81,12 @@ template <typename K, typename V>
 bool LRUCache<K, V>::erase(const K& key) {
     auto nodeOpt = cacheMap.get(key);
     if (!nodeOpt.has_value()) return false;
+
     Node* node = static_cast<Node*>(nodeOpt.value());
     removeNode(node);
     cacheMap.erase(key);
     delete node;
-    --count;
+    count--;
     return true;
 }
 
@@ -100,6 +101,7 @@ void LRUCache<K, V>::display() const {
     cout << endl;
 }
 
+// Explicit template instantiation
 template class LRUCache<int, int>;
 template class LRUCache<string, int>;
 template class LRUCache<string, string>;

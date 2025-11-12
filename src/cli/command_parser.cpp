@@ -1,116 +1,118 @@
 #include "cli/command_parser.hpp"
-#include <iomanip>
-#include <algorithm>
-
-using namespace PANCache::CLI;
 using namespace std;
 
-CommandParser::CommandParser(Data::CacheEngine& engine) : engine_(engine) {
+CommandParser::CommandParser(CacheEngine& engine):engine_(engine){
     registerCommands();
 }
 
-vector<string> CommandParser::tokenize(const string& line) const {
-    istringstream iss(line);
-    vector<string> tokens;
+
+vector<string> CommandParser::tokenize(const string& line)const{
+    stringstream ss(line);
+    vector<string> tokens; 
     string word;
-    while (iss >> word)
+
+    while(ss>>word)
         tokens.push_back(word);
+
     return tokens;
 }
 
-void CommandParser::registerCommands() {
+
+void CommandParser::registerCommands(){
     commands_ = {
-        {"SET",     [this](const auto& a){ cmdSet(a); }},
-        {"GET",     [this](const auto& a){ cmdGet(a); }},
-        {"DEL",     [this](const auto& a){ cmdDel(a); }},
-        {"LINK",    [this](const auto& a){ cmdLink(a); }},
-        {"EXPIRE",  [this](const auto& a){ cmdExpire(a); }},
-        {"SIZE",    [this](const auto& a){ cmdSize(a); }},
-        {"HELP",    [this](const auto& a){ printHelp(); }},
-        {"EXIT",    [](const auto&){ cout << "Bye 👋" << endl; exit(0); }}
+        {"SET",    [this](const auto&a){ cmdSet(a); }},
+        {"GET",    [this](const auto& a){ cmdGet(a); }},
+        {"DEL",    [this](const auto&a){ cmdDel(a); }},
+        {"LINK",   [this](const auto& a){ cmdLink(a); }},
+        {"EXPIRE", [this](const auto&a){ cmdExpire(a); }},
+        {"SIZE",   [this](const auto& a){ cmdSize(a); }},
+        {"HELP",   [this](const auto&){ printHelp(); }},
+        {"EXIT",   [](const auto&){ cout<<"Exiting PANCache...\n"; exit(0); }}
     };
 }
 
-void CommandParser::handleCommand(const string& input) {
+
+void CommandParser::handleCommand(const string& input){
     auto tokens = tokenize(input);
-    if (tokens.empty()) return;
+    if(tokens.empty()) return;
 
-    string cmd = tokens[0];
-    transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
+    string cmd=tokens[0];
+    auto it=commands_.find(cmd);
 
-    if (commands_.find(cmd) != commands_.end()) {
-        commands_[cmd](tokens);
-    } else {
-        cout << "❌ Unknown command. Type HELP for a list.\n";
-    }
-}
-
-// ------------------- Command Implementations -------------------
-
-void CommandParser::cmdSet(const vector<string>& args) {
-    if (args.size() < 3) {
-        cout << "Usage: SET <key> <value> [ttl_seconds]\n";
-        return;
-    }
-    string key = args[1];
-    string value = args[2];
-    int ttl = (args.size() >= 4) ? stoi(args[3]) : 0;
-    engine_.set(key, value, ttl);
-    cout << "✅ Key '" << key << "' set.\n";
-}
-
-void CommandParser::cmdGet(const vector<string>& args) {
-    if (args.size() != 2) {
-        cout << "Usage: GET <key>\n";
-        return;
-    }
-    auto val = engine_.get(args[1]);
-    if (val.has_value())
-        cout << args[1] << " = " << val.value() << "\n";
+    if(it!=commands_.end())
+        it->second(tokens);
     else
-        cout << "(nil)\n";
+        cout<<"Unknown command: "<<cmd<<"\n";
 }
 
-void CommandParser::cmdDel(const vector<string>& args) {
-    if (args.size() != 2) {
-        cout << "Usage: DEL <key>\n";
+
+void CommandParser::printHelp()const{
+    cout<<R"(
+PANCache Commands:
+  SET <key> <value>          - Store key-value pair
+  GET <key>                  - Retrieve value
+  DEL <key>                  - Delete key
+  LINK <parent> <child>      - Create dependency edge
+  EXPIRE <key> <ttl_seconds> - Set time-to-live
+  SIZE                       - Display total items
+  HELP                       - Show this help
+  EXIT                       - Quit
+)";
+}
+
+
+void CommandParser::cmdSet(const vector<string>& args){
+    if(args.size()<3){
+        cout<<"Usage: SET <key> <value>\n";
         return;
     }
-    bool ok = engine_.del(args[1]);
-    cout << (ok ? "🗑️  Key deleted.\n" : "⚠️  Key not found.\n");
+    engine_.set(args[1], args[2]);
 }
 
-void CommandParser::cmdLink(const vector<string>& args) {
-    if (args.size() != 3) {
-        cout << "Usage: LINK <parent> <child>\n";
+
+void CommandParser::cmdGet(const vector<string>& args){
+    if(args.size()<2){
+        cout<<"Usage: GET <key>\n";
         return;
     }
-    engine_.depend(args[1], args[2]);
-    cout << "🔗 Linked " << args[1] << " → " << args[2] << "\n";
+
+    auto value=engine_.get(args[1]);
+    if(value.has_value())
+        cout<<args[1]<<" = "<<value.value()<<"\n";
+    else
+        cout<<"Key not found: "<<args[1]<<"\n";
 }
 
-void CommandParser::cmdExpire(const vector<string>& args) {
-    if (args.size() != 3) {
-        cout << "Usage: EXPIRE <key> <ttl_seconds>\n";
+
+void CommandParser::cmdDel(const vector<string>& args){
+    if(args.size()<2){
+        cout<<"Usage: DEL <key>\n";
         return;
     }
-    int ttl = stoi(args[2]);
-    bool ok = engine_.expire(args[1], ttl);
-    cout << (ok ? "⏳ TTL updated.\n" : "⚠️  Key not found.\n");
+    engine_.del(args[1]);
 }
 
-void CommandParser::cmdSize(const vector<string>&) {
-    cout << "📦 Cache size: " << engine_.size() << " entries.\n";
+
+void CommandParser::cmdLink(const vector<string>& args){
+    if(args.size()<3){
+        cout<<"Usage: LINK <parent> <child>\n";
+        return;
+    }
+    engine_.link(args[1], args[2]);
 }
 
-void CommandParser::printHelp() const {
-    cout << "\n🧠 PANCache CLI Commands:\n"
-         << "  SET <key> <value> [ttl]   - Store a key with optional TTL\n"
-         << "  GET <key>                 - Retrieve value\n"
-         << "  DEL <key>                 - Delete key\n"
-         << "  LINK <parent> <child>     - Create dependency link\n"
-         << "  EXPIRE <key> <seconds>    - Reset TTL of key\n"
-         << "  SIZE                      - Show total cached keys\n"
-         << "  HELP                      - Show this help menu\n"
-         << "  EXIT                      - Exit CLI\n\n";
+
+void CommandParser::cmdExpire(const vector<string>& args){
+    if(args.size()<3){
+        cout<<"Usage: EXPIRE <key> <ttl_seconds>\n";
+        return;
+    }
+
+    int ttl= stoi(args[2]);
+    engine_.expire(args[1], ttl);
+}
+
+
+void CommandParser::cmdSize(const vector<string>&){
+    cout<<"Cache size: "<<engine_.size()<<"\n";
 }

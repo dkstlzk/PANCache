@@ -1,83 +1,61 @@
 #include "data/cache_engine.hpp"
 #include <iostream>
+#include <optional>
+#include <string>
 
-CacheEngine::CacheEngine (size_t capacity)
-    : store_(), lru_(static_cast<int>(capacity)), ttl_(), deps_() {}
+CacheEngine::CacheEngine() : lru_(100) {}
 
-void CacheEngine::purgeExpired() {
+CacheEngine::CacheEngine(size_t capacity)
+    : lru_(capacity) {}
 
-    auto removed = ttl_.removeExpired();
-    for (const auto &k : removed) {
-        store_.erase(k);
-        lru_.erase(k);
-        deps_.removeNode(k);
-    }
-}
-
-void CacheEngine::cascadeDelete( const string &key) {
-
-    if (!deps_.hasNode(key)) {
-        store_.erase(key);
-        lru_.erase(key);
-        deps_.removeNode(key);
-        return;
-    }
-
-    auto reachable = deps_.getAllReachable(key);
-    for (const auto &k : reachable) {
-        store_.erase(k);
-        lru_.erase(k);
-        deps_.removeNode(k);
-    }
-}
-
-void CacheEngine::set (const string& key, const string& value, int ttl_seconds) {
-
-    purgeExpired();
-    store_.insert(key, value);
+// Insert without TTL
+void CacheEngine::set(const std::string& key, const std::string& value) {
+    hashmap_.insert(key, value);
     lru_.put(key, value);
-    deps_.addNode(key);
-    if (ttl_seconds > 0) {
-        ttl_.insert(key, value, ttl_seconds);
+}
+
+// Insert with TTL
+void CacheEngine::set(const std::string& key, const std::string& value, int ttl_seconds) {
+    hashmap_.insert(key, value);
+    lru_.put(key, value);
+    ttl_heap_.insert(key, value, ttl_seconds);
+}
+
+// Retrieve a value if exists
+std::optional<std::string> CacheEngine::get(const std::string& key) {
+    auto valueOpt = hashmap_.get(key);
+    if (valueOpt.has_value()) {
+        lru_.put(key, valueOpt.value()); // mark as recently used
+        return valueOpt.value();
     }
-
+    return std::nullopt;
 }
 
-optional <string> CacheEngine::get(const string& key) {
-    purgeExpired();
-    auto v = store_.get(key);
-    if (!v.has_value()) return nullopt;
-    lru_.get(key);
-    return v;
-}
-
-bool CacheEngine::del(const string& key) {
-    
-    purgeExpired();
-    if (!store_.contains(key)) return false;
-    cascadeDelete(key);
-    store_.erase(key);
+// Delete key from cache
+void CacheEngine::del(const std::string& key) {
+    hashmap_.erase(key);
     lru_.erase(key);
-    deps_.removeNode(key);
-    return true;
 }
 
-bool CacheEngine::expire(const string& key, int ttl_seconds) {
-
-    purgeExpired ();
-    auto v = store_.get(key);
-    if (!v.has_value()) return false;
-    ttl_.insert(key, v.value(), ttl_seconds);
-    return true;
+// Set TTL expiry for key
+void CacheEngine::expire(const std::string& key, int ttl_seconds) {
+    auto valueOpt = hashmap_.get(key);
+    if (valueOpt.has_value()) {
+        ttl_heap_.insert(key, valueOpt.value(), ttl_seconds);
+    }
 }
 
-void CacheEngine::depend(const string& parent, const string& child) {
-
-    deps_.addNode(parent );
-    deps_.addNode(child);
-    deps_.addEdge(parent, child);
+// Link dependency between two keys
+void CacheEngine::link(const std::string& from, const std::string& to) {
+    graph_.addDependency(from, to);
 }
 
+// Alias for tests (same as link)
+void CacheEngine::depend(const std::string& parent, const std::string& child) {
+    graph_.addDependency(parent, child);
+}
+
+// Return number of entries in cache
 size_t CacheEngine::size() const {
-    return store_.size();
+    return hashmap_.size();
 }
