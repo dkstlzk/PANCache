@@ -26,7 +26,7 @@ DATA_DIR      := $(SRC_DIR)/data
 DEPEND_DIR    := $(SRC_DIR)/depend
 ANALYTICS_DIR := $(SRC_DIR)/analytics
 CLI_DIR       := $(SRC_DIR)/cli
-# UTILS_DIR   := $(SRC_DIR)/utils
+UTIL_DIR      := $(SRC_DIR)/utils
 TEST_DIR      := tests
 BUILD_DIR     := build
 OBJ_DIR       := $(BUILD_DIR)/obj
@@ -42,11 +42,10 @@ DATA_SRC := \
     $(DATA_DIR)/ttl_heap.cpp \
     $(DATA_DIR)/cache_engine.cpp
 
-
 DEPEND_SRC    := $(DEPEND_DIR)/graph.cpp
 ANALYTICS_SRC := $(ANALYTICS_DIR)/topk.cpp
 CLI_SRC       := $(CLI_DIR)/command_parser.cpp
-# UTILS_SRC   := $(UTILS_DIR)/time_utils.cpp
+UTIL_SRC      := $(UTIL_DIR)/logger.cpp
 
 # ===========================================
 # 🧪 Test Source Files
@@ -59,6 +58,7 @@ TEST_GRAPH_SRC    := $(TEST_DIR)/test_graph.cpp
 TEST_CACHE_SRC    := $(TEST_DIR)/test_cache.cpp
 TEST_INTEG_SRC    := $(TEST_DIR)/test_integration.cpp
 TEST_CLI_SRC      := $(TEST_DIR)/test_cli.cpp
+TEST_LOGGER_SRC   := $(TEST_DIR)/test_logger.cpp
 
 # ===========================================
 # 🎯 Binaries
@@ -72,6 +72,7 @@ GRAPH_TEST    := $(BUILD_DIR)/test_graph
 CACHE_TEST    := $(BUILD_DIR)/test_cache
 INTEG_TEST    := $(BUILD_DIR)/test_integration
 CLI_TEST      := $(BUILD_DIR)/test_cli
+LOGGER_TEST   := $(BUILD_DIR)/test_logger
 
 # ===========================================
 # 🧱 Objects
@@ -81,9 +82,9 @@ DATA_OBJ      := $(patsubst $(DATA_DIR)/%.cpp,$(OBJ_DIR)/data_%.o,$(DATA_SRC))
 DEPEND_OBJ    := $(patsubst $(DEPEND_DIR)/%.cpp,$(OBJ_DIR)/depend_%.o,$(DEPEND_SRC))
 ANALYTICS_OBJ := $(patsubst $(ANALYTICS_DIR)/%.cpp,$(OBJ_DIR)/analytics_%.o,$(ANALYTICS_SRC))
 CLI_OBJ       := $(patsubst $(CLI_DIR)/%.cpp,$(OBJ_DIR)/cli_%.o,$(CLI_SRC))
-# UTILS_OBJ   := $(patsubst $(UTILS_DIR)/%.cpp,$(OBJ_DIR)/utils_%.o,$(UTILS_SRC))
+UTIL_OBJ      := $(patsubst $(UTIL_DIR)/%.cpp,$(OBJ_DIR)/utils_%.o,$(UTIL_SRC))
 
-ALL_OBJ := $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OBJ) $(CLI_OBJ)
+ALL_OBJ := $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OBJ) $(CLI_OBJ) $(UTIL_OBJ)
 
 # ===========================================
 # 🧰 Ensure Build Directories Exist
@@ -98,19 +99,18 @@ $(OBJ_DIR):
 # 🧱 Build Targets
 # ===========================================
 all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) \
-     $(SKIPLIST_TEST) $(GRAPH_TEST) $(CACHE_TEST) $(INTEG_TEST) $(CLI_TEST)
+     $(SKIPLIST_TEST) $(GRAPH_TEST) $(CACHE_TEST) $(INTEG_TEST) $(CLI_TEST) $(LOGGER_TEST)
 .DEFAULT_GOAL := help
 
 # -------- Main Build --------
 $(MAIN_TARGET): $(ALL_OBJ) | $(BUILD_DIR)
-	@echo "Linking $@"
+	@echo "🚀 Building PANCache Core..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
 	@echo "✅ Built main executable: $@"
 
 # ===========================================
 # 🧪 Test Targets
 # ===========================================
-# -------- Tests Build --------
 $(HASHMAP_TEST): $(TEST_HASHMAP_SRC) $(DATA_OBJ) $(DEPEND_OBJ) | $(BUILD_DIR)
 	@echo "🧩 Building HashMap test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
@@ -143,11 +143,18 @@ $(CLI_TEST): $(TEST_CLI_SRC) $(CLI_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OB
 	@echo "💻 Building CLI test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
+# -------- Logger Test --------
+test_logger: $(UTIL_SRC) $(TEST_LOGGER_SRC) | $(BUILD_DIR)
+	@echo "📝 Building Logger test..."
+	$(CXX) $(CXXFLAGS) -Iinclude $(UTIL_SRC) $(TEST_LOGGER_SRC) -o $(LOGGER_TEST)
+	@echo "Running Logger test..."
+	@$(LOGGER_TEST)
+
 # ===========================================
 # 🧰 Object Compilation Rules
 # ===========================================
-$(OBJ_DIR)/main.o: $(SRC_DIR)/main.cpp | $(OBJ_DIR)
-	@echo "Compiling main.cpp"
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/data_%.o: $(DATA_DIR)/%.cpp | $(OBJ_DIR)
@@ -170,7 +177,7 @@ $(OBJ_DIR)/cli_%.o: $(CLI_DIR)/%.cpp | $(OBJ_DIR)
 # ▶️ Run + Test Commands
 # ===========================================
 run_main: $(MAIN_TARGET)
-	@echo "🚀 Running PANCache main..."
+	@echo "Running PANCache main..."
 	@$(MAIN_TARGET)
 
 test_hashmap: $(HASHMAP_TEST); @$(HASHMAP_TEST)
@@ -183,7 +190,7 @@ test_cli:     $(CLI_TEST);     @$(CLI_TEST)
 test_integration: $(INTEG_TEST); @$(INTEG_TEST)
 
 test_all: test_hashmap test_lru test_ttl test_skiplist \
-          test_graph test_cache test_cli test_integration
+          test_graph test_cache test_cli test_integration test_logger
 	@echo "🎯 All PANCache tests passed successfully!"
 
 # ===========================================
@@ -200,10 +207,11 @@ help:
 	@echo "  make all              # Build all modules"
 	@echo "  make run_main         # Run the main executable"
 	@echo "  make test_<module>    # Run specific module test"
+	@echo "  make test_logger      # Build + run Logger utility test"
 	@echo "  make test_all         # Build & run all tests"
 	@echo "  make clean            # Clean build directory"
 	@echo "  make help             # Show this help"
 
 .PHONY: all clean help run_main \
         test_hashmap test_lru test_ttl test_skiplist \
-        test_graph test_cache test_cli test_integration test_all
+        test_graph test_cache test_cli test_integration test_logger test_all
