@@ -1,19 +1,18 @@
-# ===============================
-# 🧩 Cross-Platform Directory Handling
-# ===============================
+# ===========================================
+# 🧠 PANCache Unified Build System
+# ===========================================
+
+# -------- Cross-Platform Directory Handling --------
 ifeq ($(OS),Windows_NT)
-    # Windows (MinGW, Git Bash, PowerShell)
     MKDIR_CMD = if not exist "$(subst /,\\,$(1))" mkdir "$(subst /,\\,$(1))"
     RMDIR_CMD = if exist "$(subst /,\\,$(BUILD_DIR))" rmdir /s /q "$(subst /,\\,$(BUILD_DIR))"
 else
-    # Linux/macOS
     MKDIR_CMD = mkdir -p $(1)
     RMDIR_CMD = rm -rf $(BUILD_DIR)
 endif
 
-# ===============================
-# ⚙️ Toolchain Configuration
-# ===============================
+# -------- Toolchain Config --------
+CXX       := g++
 CXXSTD    := -std=c++17
 CXXWARN   := -Wall -Wextra
 CXXOPT    := -O2
@@ -21,175 +20,193 @@ INCLUDES  := -Iinclude
 DEPFLAGS  := -MMD -MP
 CXXFLAGS  := $(CXXSTD) $(CXXWARN) $(CXXOPT) $(INCLUDES) $(DEPFLAGS)
 
-# ===============================
-# 📁 Project Layout
-# ===============================
-SRC_DIR    := src
-DATA_DIR   := $(SRC_DIR)/data
-DEPEND_DIR := $(SRC_DIR)/depend      
-TEST_DIR   := tests
-BUILD_DIR  := build
-OBJ_DIR    := $(BUILD_DIR)/obj
+# -------- Project Layout --------
+SRC_DIR     := src
+DATA_DIR    := $(SRC_DIR)/data
+DEPEND_DIR  := $(SRC_DIR)/depend
+ANALYTICS_DIR := $(SRC_DIR)/analytics
+CLI_DIR     := $(SRC_DIR)/cli
+UTILS_DIR   := $(SRC_DIR)/utils
+TEST_DIR    := tests
+BUILD_DIR   := build
+OBJ_DIR     := $(BUILD_DIR)/obj
 
-# ===============================
-# 🧱 Source Files
-# ===============================
-MAIN_SRC   := $(SRC_DIR)/main.cpp
-DATA_SRC   := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp
+# -------- Source Files --------
+MAIN_SRC := $(SRC_DIR)/main.cpp
 
+DATA_SRC := \
+    $(DATA_DIR)/hashmap.cpp \
+    $(DATA_DIR)/lru.cpp \
+    $(DATA_DIR)/ttl_heap.cpp \
+    $(DATA_DIR)/skiplist.cpp
 
+DEPEND_SRC := $(DEPEND_DIR)/graph.cpp
+ANALYTICS_SRC := $(ANALYTICS_DIR)/topk.cpp
+CLI_SRC := $(CLI_DIR)/command_parser.cpp
+UTILS_SRC := $(UTILS_DIR)/time_utils.cpp
+
+# -------- Test Sources --------
 TEST_HASHMAP_SRC  := $(TEST_DIR)/test_hashmap.cpp
 TEST_LRU_SRC      := $(TEST_DIR)/test_lru.cpp
 TEST_TTL_SRC      := $(TEST_DIR)/test_heap.cpp
-TEST_INT_SRC      := $(TEST_DIR)/test_integration.cpp
 TEST_SKIPLIST_SRC := $(TEST_DIR)/test_skiplist.cpp
-TEST_GRAPH_SRC    := $(TEST_DIR)/test_graph.cpp   # ✅ Add graph test
+TEST_GRAPH_SRC    := $(TEST_DIR)/test_graph.cpp
 TEST_CACHE_SRC    := $(TEST_DIR)/test_cache.cpp
+TEST_INTEG_SRC    := $(TEST_DIR)/test_integration.cpp
+TEST_CLI_SRC      := $(TEST_DIR)/test_cli.cpp
 
-# ===============================
-# 🏗️ Output Binaries
-# ===============================
+# -------- Binaries --------
 MAIN_TARGET   := $(BUILD_DIR)/pancache_main
 HASHMAP_TEST  := $(BUILD_DIR)/test_hashmap
 LRU_TEST      := $(BUILD_DIR)/test_lru
 TTL_TEST      := $(BUILD_DIR)/test_ttl
-INTEG_TEST    := $(BUILD_DIR)/test_integration
 SKIPLIST_TEST := $(BUILD_DIR)/test_skiplist
-GRAPH_TEST    := $(BUILD_DIR)/test_graph    # ✅ Add graph test binary
+GRAPH_TEST    := $(BUILD_DIR)/test_graph
 CACHE_TEST    := $(BUILD_DIR)/test_cache
+INTEG_TEST    := $(BUILD_DIR)/test_integration
+CLI_TEST      := $(BUILD_DIR)/test_cli
 
-# ===============================
-# 🧩 Object Files
-# ===============================
-MAIN_OBJ      := $(OBJ_DIR)/main.o
-DATA_OBJ      := $(patsubst $(DATA_DIR)/%.cpp,$(OBJ_DIR)/data_%.o,$(DATA_SRC))
-TOBJ_GRAPH    := $(OBJ_DIR)/t_graph.o
+# -------- Objects --------
+MAIN_OBJ  := $(OBJ_DIR)/main.o
+DATA_OBJ  := $(patsubst $(DATA_DIR)/%.cpp,$(OBJ_DIR)/data_%.o,$(DATA_SRC))
+DEPEND_OBJ := $(patsubst $(DEPEND_DIR)/%.cpp,$(OBJ_DIR)/depend_%.o,$(DEPEND_SRC))
+ANALYTICS_OBJ := $(patsubst $(ANALYTICS_DIR)/%.cpp,$(OBJ_DIR)/analytics_%.o,$(ANALYTICS_SRC))
+CLI_OBJ := $(patsubst $(CLI_DIR)/%.cpp,$(OBJ_DIR)/cli_%.o,$(CLI_SRC))
+UTILS_OBJ := $(patsubst $(UTILS_DIR)/%.cpp,$(OBJ_DIR)/utils_%.o,$(UTILS_SRC))
 
-# ===============================
-# 🎯 Meta Targets
-# ===============================
-all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(INTEG_TEST) $(GRAPH_TEST) $(SKIPLIST_TEST) $(CACHE_TEST)
+ALL_OBJ := $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OBJ) $(CLI_OBJ) $(UTILS_OBJ)
 
+# ===========================================
+# 🧱 Build Targets
+# ===========================================
+
+all: $(MAIN_TARGET) $(HASHMAP_TEST) $(LRU_TEST) $(TTL_TEST) $(SKIPLIST_TEST) $(GRAPH_TEST) $(CACHE_TEST) $(INTEG_TEST) $(CLI_TEST)
 .DEFAULT_GOAL := help
 
-# ===============================
-# 🧩 Build Rules
-# ===============================
-$(MAIN_TARGET): $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_SRC) | $(BUILD_DIR)
+# -------- Main Build --------
+$(MAIN_TARGET): $(ALL_OBJ) | $(BUILD_DIR)
 	@echo "Linking $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "✅ Built main: $@"
+	@echo "✅ Built main executable: $@"
 
-$(HASHMAP_TEST): $(OBJ_DIR)/t_hashmap.o $(OBJ_DIR)/data_hashmap.o | $(BUILD_DIR)
-	@echo "Linking $@"
+# -------- Tests Build --------
+$(HASHMAP_TEST): $(TEST_HASHMAP_SRC) $(DATA_OBJ) | $(BUILD_DIR)
+	@echo "🧩 Building HashMap test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "🧩 Built HashMap test: $@"
 
-$(LRU_TEST): $(OBJ_DIR)/t_lru.o $(OBJ_DIR)/data_hashmap.o $(OBJ_DIR)/data_lru.o | $(BUILD_DIR)
-	@echo "Linking $@"
+$(LRU_TEST): $(TEST_LRU_SRC) $(DATA_OBJ) | $(BUILD_DIR)
+	@echo "🔁 Building LRU test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "🔁 Built LRU test: $@"
 
-$(TTL_TEST): $(OBJ_DIR)/t_ttl.o $(OBJ_DIR)/data_ttl_heap.o | $(BUILD_DIR)
-	@echo "Linking $@"
+$(TTL_TEST): $(TEST_TTL_SRC) $(DATA_OBJ) | $(BUILD_DIR)
+	@echo "⏳ Building TTL test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "⏳ Built TTL Heap test: $@"
 
-$(GRAPH_TEST): $(TEST_GRAPH_SRC) | $(BUILD_DIR)
-
-	@$(call MKDIR_CMD,$(BUILD_DIR))
-	@echo "🔗 Building Graph Dependency test..."
-	$(CXX) $(CXXFLAGS) $(DEPEND_SRC) $(TEST_GRAPH_SRC) -o $(GRAPH_TEST)
-	@echo "✅ Built Graph Dependency test: $(GRAPH_TEST)"
-
-
-$(INTEG_TEST): $(OBJ_DIR)/t_integration.o $(DATA_OBJ) $(DEPEND_SRC) | $(BUILD_DIR)
-	@echo "Linking $@"
+$(SKIPLIST_TEST): $(TEST_SKIPLIST_SRC) $(DATA_OBJ) | $(BUILD_DIR)
+	@echo "📊 Building SkipList test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "🧠 Built Integration test: $@"
 
-$(SKIPLIST_TEST): $(TEST_SKIPLIST_SRC) | $(BUILD_DIR)
-	@echo "Compiling SkipList test..."
+$(GRAPH_TEST): $(TEST_GRAPH_SRC) $(DEPEND_OBJ) | $(BUILD_DIR)
+	@echo "🔗 Building Graph test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "📊 Built SkipList test: $@"
 
-$(CACHE_TEST): $(OBJ_DIR)/t_cache.o $(OBJ_DIR)/data_cache_engine.o $(DATA_OBJ) $(DEPEND_SRC) | $(BUILD_DIR)
-	@echo "Linking $@"
+$(CACHE_TEST): $(TEST_CACHE_SRC) $(DATA_OBJ) $(DEPEND_OBJ) $(UTILS_OBJ) | $(BUILD_DIR)
+	@echo "🧮 Building CacheEngine test..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "🧮 Built CacheEngine test: $@"
 
-# ===============================
-# 🧰 Directory Handling
-# ===============================
-$(BUILD_DIR) $(OBJ_DIR):
-	@$(call MKDIR_CMD,$@)
+$(INTEG_TEST): $(TEST_INTEG_SRC) $(DATA_OBJ) $(DEPEND_OBJ) $(CLI_OBJ) $(UTILS_OBJ) | $(BUILD_DIR)
+	@echo "🧠 Building Integration test..."
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
-# ===============================
-# 🧱 Compilation Rules
-# ===============================
+$(CLI_TEST): $(TEST_CLI_SRC) $(CLI_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(UTILS_OBJ) | $(BUILD_DIR)
+	@echo "💻 Building CLI test..."
+	$(CXX) $(CXXFLAGS) $^ -o $@
+	
+# ===========================================
+# 🧰 Object Compilation Rules (Fixed)
+# ===========================================
+
+# --- For root-level files (like src/main.cpp) ---
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+# --- For data/ files ---
 $(OBJ_DIR)/data_%.o: $(DATA_DIR)/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJ_DIR)/t_%.o: $(TEST_DIR)/%.cpp | $(OBJ_DIR)
+# --- For depend/ files ---
+$(OBJ_DIR)/depend_%.o: $(DEPEND_DIR)/%.cpp | $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# ===============================
+# --- For analytics/ files ---
+$(OBJ_DIR)/analytics_%.o: $(ANALYTICS_DIR)/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# --- For cli/ files ---
+$(OBJ_DIR)/cli_%.o: $(CLI_DIR)/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# --- For utils/ files ---
+$(OBJ_DIR)/utils_%.o: $(UTILS_DIR)/%.cpp | $(OBJ_DIR)
+	@echo "Compiling $<"
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# ===========================================
 # ▶️ Run Commands
-# ===============================
+# ===========================================
 run_main: $(MAIN_TARGET)
 	@echo "🚀 Running PANCache main..."
 	@$(MAIN_TARGET)
+	@echo ""
+	@echo "✅ PANCache Core Build Successful"
+	@echo ""
+	@echo "Use the following commands to test modules:"
+	@echo "  make test_hashmap     → Test HashMap"
+	@echo "  make test_lru         → Test LRUCache"
+	@echo "  make test_ttl         → Test TTLHeap"
+	@echo "  make test_skiplist    → Test SkipList"
+	@echo "  make test_graph       → Test Graph Dependencies"
+	@echo "  make test_cache       → Test CacheEngine Core"
+	@echo "  make test_cli         → Test CLI Parser"
+	@echo "  make test_integration → Full Integration Test"
+	@echo ""
+	@echo "Or run:  make test_all  → Run all tests sequentially"
 
-test_hashmap: $(HASHMAP_TEST)
-	@echo "🧪 Running HashMap test..."
-	@$(HASHMAP_TEST)
+test_hashmap: $(HASHMAP_TEST); @$(HASHMAP_TEST)
+test_lru:     $(LRU_TEST);     @$(LRU_TEST)
+test_ttl:     $(TTL_TEST);     @$(TTL_TEST)
+test_skiplist:$(SKIPLIST_TEST);@$(SKIPLIST_TEST)
+test_graph:   $(GRAPH_TEST);   @$(GRAPH_TEST)
+test_cache:   $(CACHE_TEST);   @$(CACHE_TEST)
+test_cli:     $(CLI_TEST);     @$(CLI_TEST)
+test_integration: $(INTEG_TEST); @$(INTEG_TEST)
 
-test_lru: $(LRU_TEST)
-	@echo "🧪 Running LRU test..."
-	@$(LRU_TEST)
+test_all: test_hashmap test_lru test_ttl test_skiplist test_graph test_cache test_cli test_integration
+	@echo "🎯 All PANCache tests passed successfully!"
 
-test_ttl: $(TTL_TEST)
-	@echo "🧪 Running TTL Heap test..."
-	@$(TTL_TEST)
-
-test_graph: $(GRAPH_TEST)
-	@echo "🧪 Running Graph Dependency test..."
-	@$(GRAPH_TEST)
-
-test_integration: $(INTEG_TEST)
-	@echo "🧪 Running Integration test..."
-	@$(INTEG_TEST)
-
-test_skiplist: $(SKIPLIST_TEST)
-	@echo "🧪 Running SkipList test..."
-	@$(SKIPLIST_TEST)
-
-test_cache: $(CACHE_TEST)
-	@echo "🧪 Running CacheEngine test..."
-	@$(CACHE_TEST)
-
-test_all: test_hashmap test_lru test_ttl test_graph test_skiplist test_integration test_cache
-
-# ===============================
+# ===========================================
 # 🧹 Clean + Help
-# ===============================
+# ===========================================
 clean:
 	@$(RMDIR_CMD)
 	@echo "🧹 Cleaned build directory."
 
 help:
-	@echo "PANCache — Make targets:"
-	@echo "  make all              # Build all components"
-	@echo "  make run_main         # Run main executable"
-	@echo "  make test_hashmap     # Build + run HashMap test"
-	@echo "  make test_graph       # Build + run Graph Dependency test"
-	@echo "  make test_all         # Run all tests"
+	@echo "PANCache — Cross-Platform Build System"
+	@echo ""
+	@echo "Commands:"
+	@echo "  make all              # Build all modules"
+	@echo "  make run_main         # Run the main executable"
+	@echo "  make test_<module>    # Run specific module test"
+	@echo "  make test_all         # Build & run all tests"
 	@echo "  make clean            # Clean build directory"
+	@echo "  make help             # Show this help"
 
-.PHONY: all clean help run_main test_hashmap test_lru test_ttl test_graph test_skiplist test_integration test_cache test_all
+.PHONY: all clean help run_main \
+        test_hashmap test_lru test_ttl test_skiplist \
+        test_graph test_cache test_cli test_integration test_all

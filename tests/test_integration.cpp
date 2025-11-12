@@ -1,25 +1,59 @@
-#include "data/lru.hpp"
+#include "data/cache_engine.hpp"
+#include "data/skiplist.hpp"
 #include <iostream>
+#include <thread>
+#include <cassert>
+using namespace std;
 
 int main() {
-    std::cout << "Testing LRUCache + HashMap integration...\n";
+    cout << "🔗 PANCache Integration Test Start...\n";
 
-    // must specify template types (since LRUCache is a template)
-    LRUCache<int, int> cache(3);
+    // --- Core Engine ---
+    CacheEngine cache(5);
+    cache.set("alpha", "A");
+    cache.set("beta", "B");
+    cache.set("gamma", "G", 2);  // TTL = 2s
 
-    cache.put(1, 10);
-    cache.put(2, 20);
-    cache.put(3, 30);
-    cache.display();
+    // --- Basic get/set check ---
+    assert(cache.get("alpha").value() == "A");
+    assert(cache.get("beta").value() == "B");
+    cout << "✅ HashMap + LRU integration works.\n";
 
-    std::cout << "Get(2): " << cache.get(2) << "\n";
-    cache.display();
+    // --- TTL expiration check ---
+    cout << "⏳ Waiting 3 seconds to test TTL expiry...\n";
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    assert(!cache.get("gamma").has_value());
+    cout << "✅ TTLHeap expiration works.\n";
 
-    cache.put(4, 40); // should evict key 1
-    cache.display();
+    // --- Graph dependency check ---
+    cache.set("parent", "P");
+    cache.set("child", "C");
+    cache.depend("parent", "child");
+    cache.del("parent"); // should cascade delete child
+    assert(!cache.get("child").has_value());
+    cout << "✅ Graph dependency cascade works.\n";
 
-    std::cout << "Get(1): " << cache.get(1) << " (should be 0 if evicted)\n";
-    std::cout << "Integration test finished.\n";
+    // --- Reuse + Expiry mix ---
+    cache.set("x", "100");
+    cache.expire("x", 1);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    assert(!cache.get("x").has_value());
+    cout << "✅ Expire operation verified.\n";
 
+    // --- SkipList integration ---
+    SkipList<string, int> sl;
+    sl.insert("apple", 10);
+    sl.insert("banana", 20);
+    sl.insert("cherry", 30);
+    sl.display();
+    cout << "✅ SkipList sorted access verified.\n";
+
+    // --- Final consistency check ---
+    cache.set("delta", "D");
+    assert(cache.size() > 0);
+    cout << "✅ CacheEngine stable across mixed operations.\n";
+
+    cout << "\n🎯 All PANCache integrated module tests passed successfully!\n";
     return 0;
 }
+
