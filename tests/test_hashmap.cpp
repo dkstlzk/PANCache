@@ -10,7 +10,7 @@ int main(){
     auto &log= Logger::getInstance();
     log.setLogLevel(Logger::Level::INFO);
 
-    log.info("🧩 HashMap tests starting...");
+    log.info("HashMap tests starting...");
 
     HashMap<string,int> map;
 
