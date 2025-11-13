@@ -26,6 +26,53 @@ QUIT
 ```
 
 ## Architecture Modules
-```text
 
+```text
+                          ┌───────────────────────────────┐
+                          │           PANCache            │
+                          │     (SwiftCache Architecture) │
+                          └───────────────────────────────┘
+                                       │
+                                       ▼
+                        ┌───────────────────────────────────┐
+                        │           CacheEngine             │
+                        │  (Main Orchestrator / Facade)     │
+                        └───────────────────────────────────┘
+                         │          │             │       │
+      SET/GET/DEL/TTL →  │          │             │       │  → RANGE/SORTED ACCESS
+                         ▼          ▼             ▼       ▼
+        ┌─────────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌─────────────────┐
+        │      HashMap        │ │     LRU        │ │   TTL Heap     │ │    SkipList     │
+        │   O(1) storage      │ │ O(1) eviction  │ │  TTL expiry    │ │ Sorted keys     │
+        └─────────────────────┘ └────────────────┘ └────────────────┘ └─────────────────┘
+                 │                     │                 │                   │
+                 │                     │                 │                   │
+                 └──────────────┬──────┴───────┬────────┴───────────────┬────┘
+                                │              │                        │
+                                ▼              ▼                        ▼
+                         ┌──────────────────────────────────────────────────────────┐
+                         │                       Graph (DAG)                        │
+                         │    Dependency Manager: parent → child relationships      │
+                         └──────────────────────────────────────────────────────────┘
+                                          │
+                                          ▼
+                       (On delete/expire: delete all dependents recursively)
+                                          │
+                                          ▼
+                                 ┌────────────────┐
+                                 │    Logger      │
+                                 │  (Console/File │
+                                 │   debug/info)  │
+                                 └────────────────┘
+                                          │
+                                          ▼
+                                 ┌────────────────┐
+                                 │  CommandParser │
+                                 │  CLI Interface │
+                                 └────────────────┘
+                                          │
+                                          ▼
+                                 User enters commands
+                                 SET/GET/DEL/EXPIRE/LINK
 ```
+
