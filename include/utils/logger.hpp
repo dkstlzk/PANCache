@@ -7,6 +7,7 @@
 #include <mutex>
 #include <sstream>
 #include <iomanip>
+using namespace std;
 
 namespace PANCache {
 namespace Utils {
@@ -17,31 +18,31 @@ public:
 
     static Logger& getInstance();
 
-    void log(Level level, const std::string& msg);
+    void log(Level level, const string& msg);
     void setLogLevel(Level level);
 
-    bool enableFileOutput(const std::string& filename);
+    bool enableFileOutput(const string& filename);
     void disableFileOutput();
 
-    void debug(const std::string& msg);
-    void info (const std::string& msg);
-    void warn (const std::string& msg);
-    void error(const std::string& msg);
+    void debug(const string& msg);
+    void info (const string& msg);
+    void warn (const string& msg);
+    void error(const string& msg);
 
 private:
     Logger();
     ~Logger();
-    Logger(const Logger&) = delete;
+    Logger(const Logger&) =delete;
     Logger& operator=(const Logger&) = delete;
 
-    std::string timestamp() const;
-    std::string levelToString(Level level) const;
-    std::string colorize(Level level, const std::string& text) const;
+    string timestamp() const;
+    string levelToString(Level level) const;
+    string colorize(Level level, const string& text) const;
 
     Level currentLevel;
     bool fileOutputEnabled;
-    std::ofstream logFile;
-    mutable std::mutex mtx;
+    ofstream logFile;
+    mutable mutex mtx;
 };
 
 } 

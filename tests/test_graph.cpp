@@ -5,7 +5,8 @@ using namespace std;
 int main() {
     cout << "🔗 Testing Graph Dependencies...\n";
 
-    Graph g;
+    //Graph g;
+    PANCache::Depend::Graph g;
     g.addNode("A");
     g.addNode("B");
     g.addNode("C");

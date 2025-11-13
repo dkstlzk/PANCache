@@ -1,25 +1,30 @@
 #pragma once
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <string>
 
-using namespace std;
+namespace PANCache {
+namespace Depend {
 
 class Graph {
-public:
-    void addNode(const string &key);
-    void addDependency(const string &from, const string &to);
-
-    vector<string> getDependents(const string &key) const;
-    vector<string> getAllDependentsRecursive(const string &key) const;
-
-    bool hasNode(const string &key) const;
-    void removeNode(const string &key);
-
 private:
-    unordered_map<string, unordered_set<string>> adj_;
-    void dfs(const string &node,
-             unordered_set<string> &visited,
-             vector<string> &result) const;
+    std::unordered_map<std::string, std::unordered_set<std::string>> adjList;
+
+    void dfs(const std::string &node,
+             std::unordered_set<std::string> &visited,
+             std::vector<std::string> &result) const;
+
+public:
+    void addNode(const std::string &key);
+    void addDependency(const std::string &from, const std::string &to);
+    void removeNode(const std::string &key);
+    void removeDependencies(const std::string &key);
+    bool hasNode(const std::string &key) const;
+    std::vector<std::string> getDependents(const std::string &key) const;
+    std::vector<std::string> getAllDependentsRecursive(const std::string &key) const;
+    void clear();
 };
+
+} // namespace Depend
+} // namespace PANCache

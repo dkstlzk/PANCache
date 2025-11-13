@@ -5,6 +5,8 @@
 #include "data/lru.hpp"
 #include "data/ttl_heap.hpp"
 #include "depend/graph.hpp"
+#include "../depend/graph.hpp"
+
 
 using namespace std;
 
@@ -30,5 +32,6 @@ private:
     LRUCache<string, string> lru_;
     HashMap<string, string> hashmap_;
     TTLHeap<string, string> ttl_heap_;
-    Graph graph_;
+    PANCache::Depend::Graph graph_;
+
 };
