@@ -1,35 +1,40 @@
 #include "depend/graph.hpp"
 #include <iostream>
+#include <cassert>
+
+using namespace PANCache::Depend;
 using namespace std;
 
 int main() {
-    cout << "🔗 Testing Graph Dependencies...\n";
+    cout << "Testing Graph Dependencies...\n";
 
-    //Graph g;
-    PANCache::Depend::Graph g;
-    g.addNode("A");
-    g.addNode("B");
-    g.addNode("C");
+    Graph g;
 
     g.addDependency("A", "B");
-    g.addDependency("B", "C");
     g.addDependency("A", "C");
+    g.addDependency("B", "D");
+    g.addDependency("C", "E");
 
-    cout << "Has node A? " << g.hasNode("A") << "\n";
+    assert(g.hasNode("A"));
+    assert(g.hasNode("E"));
 
-    cout << "Direct dependents of A: ";
-    for (auto &d : g.getDependents("A"))
-        cout << d << " ";
-    cout << "\n";
+    auto deps = g.getDependents("A");
+    assert(deps.size() == 2);
 
-    cout << "Recursive dependents of A: ";
-    for (auto &d : g.getAllDependentsRecursive("A"))
-        cout << d << " ";
-    cout << "\n";
+
+    auto allDeps = g.getAllDependentsRecursive("A");
+    assert(allDeps.size() == 4);
+
+    g.removeDependencies("A");
+    assert(g.getDependents("A").empty());
 
     g.removeNode("B");
-    cout << "After removing B, has B? " << g.hasNode("B") << "\n";
+    assert(!g.hasNode("B"));
 
-    cout << "✅ Graph test completed successfully.\n";
+    g.clear();
+    assert(!g.hasNode("A"));
+
+    cout << "Graph dependency tests passed successfully!\n";
+
     return 0;
 }

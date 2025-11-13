@@ -9,7 +9,6 @@
 
 using namespace std;
 
-// Separate-chaining HashMap 
 template <typename K, typename V>
 class HashMap {
 private:
@@ -34,13 +33,11 @@ public:
     explicit HashMap(size_t initial_capacity);
     ~HashMap();
 
-    // ops
     void insert(const K& key, const V& value);
     optional<V> get(const K& key) const;
     bool erase(const K& key);
     bool contains(const K& key) const;
 
-    // utils
     size_t size() const { return count; }
     void clear();
 };

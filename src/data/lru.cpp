@@ -70,7 +70,7 @@ V LRUCache<K, V>::get(const K& key) {
     auto nodeOpt = cacheMap.get(key);
     if (!nodeOpt.has_value()) {
         cout << "Key " << key << " not found!\n";
-        return V();  // default value
+        return V();  
     }
     Node* node = static_cast<Node*>(nodeOpt.value());
     moveToFront(node);
@@ -101,7 +101,6 @@ void LRUCache<K, V>::display() const {
     cout << endl;
 }
 
-// Explicit template instantiation
 template class LRUCache<int, int>;
 template class LRUCache<string, int>;
 template class LRUCache<string, string>;

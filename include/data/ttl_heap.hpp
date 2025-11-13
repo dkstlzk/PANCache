@@ -12,16 +12,12 @@ class TTLHeap {
 public:
     TTLHeap() = default;
 
-    // Insert key with value and TTL (in seconds)
     void insert(const Key& key, const Value& value, int ttl_seconds);
 
-    // Get value if it exists and hasn't expired
     bool get(const Key& key, Value& value);
 
-    // Remove all expired keys and return their list
-    std::vector<Key> removeExpired();   // ✅ fixed spacing + added std::
+    std::vector<Key> removeExpired();  
 
-    // Return the number of items still valid
     size_t size() const;
 
 private:
@@ -31,7 +27,6 @@ private:
         Key key;
         TimePoint expiry;
 
-        // Min-heap comparator: earlier expiry has higher priority
         bool operator<(const HeapNode& other) const {
             return expiry > other.expiry;
         }

@@ -1,4 +1,3 @@
-// src/main.cpp
 #include "cli/command_parser.hpp"
 #include "data/cache_engine.hpp"
 #include "utils/logger.hpp"
@@ -10,7 +9,6 @@ using namespace std;
 using namespace PANCache::Utils;
 
 int main() {
-    // Initialize logger early so other modules can use it
     auto &log = Logger::getInstance();
     log.setLogLevel(Logger::Level::INFO);
 
@@ -22,7 +20,6 @@ int main() {
     log.info("  make test_integration → Run full integration test");
     cout << endl;
 
-    // Start CLI (original behavior)
     CacheEngine cache;
     CommandParser cli(cache);
 
@@ -32,7 +29,6 @@ int main() {
     while (true) {
         cout << "> ";
         if (!std::getline(cin, input)) {
-            // EOF or error — exit gracefully
             log.info("Input stream closed, shutting down.");
             break;
         }

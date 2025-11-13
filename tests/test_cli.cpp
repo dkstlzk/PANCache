@@ -6,6 +6,6 @@ int main() {
     CacheEngine engine;
     CommandParser cli(engine);
 
-    std::cout << "✅ CLI Parser test build successful!\n";
+    std::cout << "CLI Parser test build successful!\n";
     return 0;
 }

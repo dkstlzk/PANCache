@@ -26,5 +26,5 @@ public:
     void clear();
 };
 
-} // namespace Depend
-} // namespace PANCache
+} 
+} 

@@ -11,7 +11,6 @@ int main(){
 
     SkipList<string, int> sl;
 
-    // insert random values
     vector<pair<string, int>> entries= {
         {"delta", 4}, {"alpha", 1}, {"charlie", 3},
         {"echo", 5}, {"bravo", 2}
@@ -23,7 +22,6 @@ int main(){
         cout << "SkipList Level 0 contents after insert:\n";
     sl.display();
 
-    // check sorted order
     vector<string> expected_keys= {"alpha", "bravo", "charlie", "delta", "echo"};
     vector<string> actual_keys;
 
@@ -45,10 +43,8 @@ int main(){
     assert(!sl.search("charlie").has_value());
     cout << "Erase operation works.\n";
 
-    // test non-existing erase
     assert(!sl.erase("zulu"));
 
-    // insert again and check traversal still ordered
     sl.insert("foxtrot", 6);
     cout << "After re-insertions:\n";
     sl.display();

@@ -13,7 +13,6 @@ int main() {
     log.warn("Warning: This is a test warning");
     log.error("Error: Simulated failure condition");
 
-    // File logging test
     log.enableFileOutput("logger_test_output.log");
     log.info("This should also appear in the log file");
     log.disableFileOutput();

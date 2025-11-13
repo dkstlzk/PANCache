@@ -12,7 +12,7 @@ int main() {
     std::cout << "Access 2: " << cache.get(2) << std::endl;
     cache.display();
 
-    cache.put(4, 40); // should evict 1
+    cache.put(4, 40); 
     cache.display();
 
     std::cout << "Access 1 (evicted): " << cache.get(1) << std::endl;

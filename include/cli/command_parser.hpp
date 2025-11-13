@@ -8,9 +8,6 @@
 #include <sstream>
 using namespace std;
 
-/**
- * CommandParser provides CLI over CacheEngine.
- */
 class CommandParser {
 public:
     explicit CommandParser(CacheEngine& engine);
@@ -24,9 +21,8 @@ private:
     unordered_map<string, CommandHandler> commands_;
 
     void registerCommands();
-    vector<string> tokenize(const string& line) const; // ✅ Added
+    vector<string> tokenize(const string& line) const; 
 
-    // Command handlers
     void cmdSet(const vector<string>& args);
     void cmdGet(const vector<string>& args);
     void cmdDel(const vector<string>& args);

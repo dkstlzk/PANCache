@@ -11,7 +11,7 @@ int main(){
     CacheEngine cache(5);
     cache.set("alpha","A");
     cache.set("beta", "B");
-    cache.set("gamma","G",2);   // ttl=2s
+    cache.set("gamma","G",2); 
 
     assert( cache.get("alpha").value()=="A" );
     assert( cache.get("beta").value() == "B" );

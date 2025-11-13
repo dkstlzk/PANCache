@@ -10,9 +10,6 @@
 
 using namespace std;
 
-// simple templated SkipList
-// Key-Value store with sorted access
-
 template <typename K, typename V>
 class SkipList {
 private:
@@ -55,7 +52,6 @@ public:
         vector<Node*> update(maxLevel+1, nullptr);
         Node* curr= header;
 
-        // Find update points
         for (int i=currentLevel; i>=0; i--) {
             while (curr->forward[i] && curr->forward[i]->key < key)
                 curr= curr->forward[i];
@@ -65,7 +61,7 @@ public:
         curr= curr->forward[0];
 
         if (curr && curr->key==key){
-            curr->value= value;  // update existing
+            curr->value= value; 
             return;
         }
 
@@ -132,4 +128,4 @@ public:
     }
 };
 
-#endif // SKIPLIST_HPP
+#endif 
