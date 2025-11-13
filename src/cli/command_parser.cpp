@@ -26,6 +26,7 @@ void CommandParser::registerCommands(){
         {"LINK",   [this](const auto& a){ cmdLink(a); }},
         {"EXPIRE", [this](const auto&a){ cmdExpire(a); }},
         {"SIZE",   [this](const auto& a){ cmdSize(a); }},
+        {"PREFIX", [this](const auto& a){ cmdPrefix(a); }},  
         {"HELP",   [this](const auto&){ printHelp(); }},
         {"EXIT",   [](const auto&){ cout<<"Exiting PANCache...\n"; exit(0); }}
     };
@@ -115,4 +116,20 @@ void CommandParser::cmdExpire(const vector<string>& args){
 
 void CommandParser::cmdSize(const vector<string>&){
     cout<<"Cache size: "<<engine_.size()<<"\n";
+}
+
+void CommandParser::cmdPrefix(const vector<string>& args){
+    if(args.size() < 2){
+        cout << "Usage: PREFIX <prefix>\n";
+        return;
+    }
+
+    auto results= engine_.prefix(args[1]);
+    if(results.empty()){
+        cout << "No keys found with prefix: " << args[1] <<"\n";
+        return;
+    }
+
+    for(const auto& k: results)
+        cout << k << "\n";
 }

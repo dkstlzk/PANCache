@@ -6,6 +6,8 @@
 #include "data/ttl_heap.hpp"
 #include "depend/graph.hpp"
 #include "../depend/graph.hpp"
+#include "data/trie.hpp"
+
 
 
 using namespace std;
@@ -24,12 +26,16 @@ public:
     void link(const string& from, const string& to);
     void depend(const string& parent, const string& child); 
 
+    bool trieSearch(const string& key) const;
+    vector<string> triePrefix(const string& prefix) const;
+
     size_t size() const;
+    vector<string> prefix(const string& p) const;
 
 private:
     LRUCache<string, string> lru_;
     HashMap<string, string> hashmap_;
     TTLHeap<string, string> ttl_heap_;
     PANCache::Depend::Graph graph_;
-
+    Trie trie_;  
 };
