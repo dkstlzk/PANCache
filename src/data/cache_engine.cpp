@@ -3,7 +3,11 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <sstream>
+#include <iomanip>
 using namespace std;
+
+#include "data/cache_engine_state.hpp"
 
 CacheEngine::CacheEngine(): lru_(100) {}
 
@@ -107,3 +111,47 @@ vector<pair<string,int>> CacheEngine::topK(int k) const {
     return tk.computeTopK(freqMap_, k);
 }
 
+#include "data/cache_engine_state.hpp"
+
+CacheEngineState CacheEngine::exportState() const {
+    CacheEngineState st;
+    vector<string> keys = trie_.getWordsWithPrefix("");
+    for (const auto &k : keys) {
+        auto valOpt = hashmap_.get(k);
+        if (!valOpt.has_value()) continue;
+
+        CacheEntryState e;
+        e.key = k;
+        e.value = valOpt.value();
+        e.ttl = -1;               // we don't expose TTL by dump
+        e.status = "Synced";
+        st.entries.push_back(e);
+    }
+
+    // ---------------------------------------------------------
+    // 3) Dependency links (graph)
+    // ---------------------------------------------------------
+    for (const auto &k : keys) {
+        vector<string> deps = graph_.getDependents(k);
+        for (const auto &child : deps) {
+            CacheLinkState l;
+            l.parent = k;
+            l.child = child;
+            st.links.push_back(l);
+        }
+    }
+
+    // ---------------------------------------------------------
+    // 4) Skiplist (sorted keys)
+    // ---------------------------------------------------------
+    vector<string> sorted = keys;
+    sort(sorted.begin(), sorted.end());
+    st.skiplist = sorted;
+
+    st.lru = {};
+    st.ttl_expiry = {};
+    st.topk = topK(10);
+    st.trie_matches = {};
+
+    return st;
+}

@@ -10,6 +10,7 @@
 #include "data/bloom_filter.hpp"  
 #include "analytics/topk.hpp"
 
+#include "data/cache_engine_state.hpp"
 
 using namespace std;
 
@@ -33,7 +34,7 @@ public:
     size_t size() const;
     vector<string> prefix(const string& p) const;
     vector<pair<string,int>> topK(int k) const;
-
+    CacheEngineState exportState() const; 
 
 private:
     LRUCache<string, string> lru_;
