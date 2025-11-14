@@ -5,8 +5,9 @@
 #include "data/lru.hpp"
 #include "data/ttl_heap.hpp"
 #include "depend/graph.hpp"
-#include "../depend/graph.hpp"
+//#include "../depend/graph.hpp"
 #include "data/trie.hpp"
+#include "data/bloom_filter.hpp"  
 
 
 
@@ -38,4 +39,7 @@ private:
     TTLHeap<string, string> ttl_heap_;
     PANCache::Depend::Graph graph_;
     Trie trie_;  
+    //Trie trie;
+
+    BloomFilter bloom_; 
 };

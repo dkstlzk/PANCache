@@ -34,7 +34,7 @@ public:
 
     bool search(const string& word) const;
 
-    bool startsWith(const string& prefix) const;
+    vector<string> startsWith(const string& prefix) const;
 
     vector<string> getWordsWithPrefix(const string& prefix) const;
 };

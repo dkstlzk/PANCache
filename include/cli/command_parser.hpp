@@ -13,6 +13,7 @@ public:
     explicit CommandParser(CacheEngine& engine);
     void handleCommand(const string& input);
     void printHelp() const;
+    void cmdPrefix(const vector<string>& args);
 
 private:
     CacheEngine& engine_;

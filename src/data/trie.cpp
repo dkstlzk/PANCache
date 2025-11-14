@@ -1,5 +1,6 @@
 #include "data/trie.hpp"
 
+
 void Trie::insert(const string& word) {
     Node* curr= root;
     for (char c: word) {
@@ -29,20 +30,25 @@ bool Trie::search(const string& word) const {
     return curr->isEnd;
 }
 
-bool Trie::startsWith(const string& prefix) const {
-    Node* curr= root;
+vector<string> Trie::startsWith(const string& prefix) const {
+    Node* curr = root;
+
     for (char c: prefix) {
         if (!isalpha(c)) continue;
-        c= tolower(c);
+        c = tolower(c);
 
-        int idx = c-'a';
+        int idx = c - 'a';
         if (!curr->children[idx])
-            return false;
+            return {};  
 
-        curr= curr->children[idx];
+        curr = curr->children[idx];
     }
-    return true;
+
+    vector<string> result;
+    collect(curr, prefix, result);
+    return result;
 }
+
 
 vector<string> Trie::getWordsWithPrefix(const string& prefix) const {
     Node* curr= root;
