@@ -32,9 +32,19 @@
 
       <div class="panel">
         <h2>HashMap (Buckets)</h2>
-        
         <pre id="hashmap-buckets" class="pre-block">(empty)</pre>
       </div>
+
+      <div class="panel">
+        <h2>Bloom Filter</h2>
+        <pre id="bloom-box" class="pre-block">(empty)</pre>
+      </div>
+
+      <div class="panel">
+        <h2>Skip List (Sorted Keys)</h2>
+        <pre id="skiplist-box" class="pre-block">(empty)</pre>
+      </div>
+      
     </div>
     
     <div class="column">
@@ -43,18 +53,31 @@
         <h2>Dependency Graph</h2>
         <svg id="graph"></svg>
       </div>
+
       <div class="panel">
         <h2>TTL Min-Heap</h2>
-
         <pre id="ttl-heap" class="pre-block">(no TTL keys)</pre>
       </div>
+
+      <div class="panel">
+        <h2>Trie (Prefix Search)</h2>
+        <pre id="trie-box" class="pre-block">(empty)</pre>
+      </div>
+
+      <div class="panel">
+        <h2>Top-K Accessed Keys</h2>
+        <pre id="topk-box" class="pre-block">(empty)</pre>
+      </div>
+
     </div>
+
     <div class="column">
       <div class="panel">
         <h2>LRU Cache</h2>
       
         <pre id="lru-cache" class="pre-block">(empty)</pre>
       </div>
+
       <div id="console">
         <h2>Command Console</h2>
 
@@ -67,6 +90,8 @@
             <p><strong>LINK A B</strong> — Create dependency A → B</p>
             <p><strong>EXPIRE key ttl</strong> — Set TTL expiration in seconds</p>
             <p><strong>SIZE</strong> — Show number of items</p>
+            <p><strong>PREFIX p</strong> — Trie prefix search</p>
+            <p><strong>TOPK k</strong> — Top-K frequent keys</p>
             <p><strong>CLEAR</strong> — Remove ALL keys</p>
           </div>
         </details>

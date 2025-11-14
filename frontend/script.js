@@ -250,6 +250,11 @@ function executeCommand(cmd) {
       const valueToSet = (val === undefined) ? "" : val;
       cache.set(key, { value: valueToSet, ttl: null, status: "Inserted", statusColor: "#66fcf1" });
       touchLRUOnAccess(key);
+
+      bloomInsert(key);
+      updateBloom();
+      updateSkipList();
+
       log(`SET ${key}=${valueToSet} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
     }
   } else if (op === "GET") {
@@ -260,6 +265,10 @@ function executeCommand(cmd) {
       entry.status = "Accessed";
       entry.statusColor = "#45a29e";
       touchLRUOnAccess(key);
+
+      accessCount[key] = (accessCount[key] || 0) + 1;
+      updateTopK();
+
       log(`GET ${key} -> ${entry.value} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
     } else {
       log(`GET ${key} -> [MISS]`);
@@ -271,6 +280,9 @@ function executeCommand(cmd) {
       cache.delete(key);
       if (ttlTimers[key]) { clearTimeout(ttlTimers[key]); delete ttlTimers[key]; delete ttlExpiry[key]; }
       removeFromLRU(key);
+      
+      updateSkipList();
+
       log(`DEL ${key} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
     }
   } else if (op === "LINK") {
@@ -306,6 +318,28 @@ function executeCommand(cmd) {
     }
     lruList = [];
     log("Cache cleared");
+
+    bloomBits = Array(16).fill(0);
+    accessCount = {};
+    updateBloom();
+    updateTopK();
+    updateSkipList();
+    
+  } else if (op === "PREFIX") {
+    if (!key) log("PREFIX p");
+    else updateTrie(key);
+
+  } else if (op === "TOPK") {
+    const k = parseInt(key);
+    if (isNaN(k)) log("TOPK k");
+    else {
+      const arr = Object.entries(accessCount)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,k);
+      const el = document.getElementById("topk-box");
+      if (el) el.textContent = arr.length ? arr.map(x=>`${x[0]} (${x[1]})`).join("\n") : "(empty)";
+    }  
+  
   } else {
     log(`Unknown command: ${cmd}`);
   }
@@ -334,3 +368,49 @@ renderGraph();
 updateHashmapBuckets();
 updateLRU();
 updateTTLHeap();
+
+let bloomBits = Array(16).fill(0);
+let accessCount = {};
+
+function updateBloom() {
+  const el = document.getElementById("bloom-box");
+  if (!el) return;
+  el.textContent = bloomBits.join(" ");
+}
+
+function hash1(s) {
+  let h = 0;
+  for (let c of s) h = (h * 31 + c.charCodeAt(0)) % bloomBits.length;
+  return h;
+}
+function hash2(s) {
+  let h = 7;
+  for (let c of s) h = (h * 17 + c.charCodeAt(0)) % bloomBits.length;
+  return h;
+}
+function bloomInsert(k) {
+  bloomBits[hash1(k)] = 1;
+  bloomBits[hash2(k)] = 1;
+}
+
+function updateSkipList() {
+  const keys = Array.from(cache.keys()).sort();
+  const el = document.getElementById("skiplist-box");
+  if (!el) return;
+  el.textContent = keys.length ? keys.join(" → ") : "(empty)";
+}
+
+function updateTrie(prefix) {
+  const keys = Array.from(cache.keys());
+  const matches = keys.filter(k => k.startsWith(prefix));
+  const el = document.getElementById("trie-box");
+  if (!el) return;
+  el.textContent = matches.length ? matches.join(" ") : "(no match)";
+}
+
+function updateTopK() {
+  const arr = Object.entries(accessCount).sort((a,b)=>b[1]-a[1]);
+  const el = document.getElementById("topk-box");
+  if (!el) return;
+  el.textContent = arr.length ? arr.map(x=>`${x[0]} (${x[1]})`).join("\n") : "(empty)";
+}
