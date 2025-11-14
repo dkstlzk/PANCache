@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PANCache Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <h1>PANCache Visualizer ⚡</h1>
+
+  <div id="layout">
+
+   
+    <div class="column">
+      <div class="panel">
+        <h2>Cache Table</h2>
+        <table id="cache-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Value</th>
+              <th>TTL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>HashMap (Buckets)</h2>
+        
+        <pre id="hashmap-buckets" class="pre-block">(empty)</pre>
+      </div>
+    </div>
+    
+    <div class="column">
+
+      <div class="panel">
+        <h2>Dependency Graph</h2>
+        <svg id="graph"></svg>
+      </div>
+      <div class="panel">
+        <h2>TTL Min-Heap</h2>
+
+        <pre id="ttl-heap" class="pre-block">(no TTL keys)</pre>
+      </div>
+    </div>
+    <div class="column">
+      <div class="panel">
+        <h2>LRU Cache</h2>
+      
+        <pre id="lru-cache" class="pre-block">(empty)</pre>
+      </div>
+      <div id="console">
+        <h2>Command Console</h2>
+
+        <details id="help-box" open>
+          <summary>📘 Command List (click to collapse)</summary>
+          <div id="help-content">
+            <p><strong>SET key value</strong> — Insert/update a key</p>
+            <p><strong>GET key</strong> — Retrieve a key</p>
+            <p><strong>DEL key</strong> — Delete a key</p>
+            <p><strong>LINK A B</strong> — Create dependency A → B</p>
+            <p><strong>EXPIRE key ttl</strong> — Set TTL expiration in seconds</p>
+            <p><strong>SIZE</strong> — Show number of items</p>
+            <p><strong>CLEAR</strong> — Remove ALL keys</p>
+          </div>
+        </details>
+
+        <input type="text" id="command-input" placeholder="Type a PANCache command... (e.g., SET A 10)">
+        <div id="log"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
