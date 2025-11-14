@@ -24,7 +24,6 @@ function log(message) {
   logDiv.scrollTop = logDiv.scrollHeight;
 }
 
-
 function updateCacheTable() {
   const tbody = document.querySelector("#cache-table tbody");
   if (!tbody) return;
@@ -39,7 +38,6 @@ function updateCacheTable() {
     `;
     tbody.appendChild(row);
   }
-
 
   updateHashmapBuckets();
   updateLRU();
@@ -65,7 +63,9 @@ function updateHashmapBuckets() {
 
   const el = document.getElementById("hashmap-buckets");
   if (!el) return;
-  el.textContent = arr.map((b, i) => `Bucket ${i}: ${b.length ? b.join(", ") : "(empty)"}`).join("\n");
+  el.textContent = arr.map((b, i) =>
+    `Bucket ${i}: ${b.length ? b.join(", ") : "(empty)"}`
+  ).join("\n");
 }
 
 function updateLRU() {
@@ -115,7 +115,7 @@ function renderGraph() {
     .force("link", d3.forceLink(linkData).id(d => d.id).distance(70).strength(0.9))
     .force("charge", d3.forceManyBody().strength(-120))
     .force("center", d3.forceCenter(width / 2, height / 2))
-    .force("collide", d3.forceCollide(28))            // prevent overlaps
+    .force("collide", d3.forceCollide(28))
     .force("x", d3.forceX(width / 2).strength(0.05))
     .force("y", d3.forceY(height / 2).strength(0.05))
     .velocityDecay(0.35)
@@ -200,6 +200,8 @@ function renderGraph() {
   }, 2500);
 }
 
+
+// LRU Helpers
 function touchLRUOnAccess(key) {
   lruList = lruList.filter(k => k !== key);
   lruList.unshift(key); 
@@ -209,6 +211,8 @@ function removeFromLRU(key) {
   lruList = lruList.filter(k => k !== key);
 }
 
+
+// TTL Logic
 function scheduleTTL(key, seconds) {
   if (ttlTimers[key]) {
     clearTimeout(ttlTimers[key]);
@@ -248,19 +252,22 @@ function executeCommand(cmd) {
       log("SET requires a key (usage: SET key value)");
     } else {
       const valueToSet = (val === undefined) ? "" : val;
-      cache.set(key, { value: valueToSet, ttl: null, status: "Inserted", statusColor: "#66fcf1" });
+      cache.set(key, {
+        value: valueToSet,
+        ttl: null,
+        status: "Inserted",
+        statusColor: "#66fcf1"
+      });
       touchLRUOnAccess(key);
 
-      bloomInsert(key);
-      updateBloom();
       updateSkipList();
 
       log(`SET ${key}=${valueToSet} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
     }
+
   } else if (op === "GET") {
-    if (!key) {
-      log("GET requires a key (usage: GET key)");
-    } else if (cache.has(key)) {
+    if (!key) log("GET requires a key");
+    else if (cache.has(key)) {
       const entry = cache.get(key);
       entry.status = "Accessed";
       entry.statusColor = "#45a29e";
@@ -274,38 +281,39 @@ function executeCommand(cmd) {
       log(`GET ${key} -> [MISS]`);
     }
   } else if (op === "DEL") {
-    if (!key) {
-      log("DEL requires a key (usage: DEL key)");
-    } else {
+    if (!key) log("DEL requires key");
+    else {
+      cascadeDelete(key);
       cache.delete(key);
-      if (ttlTimers[key]) { clearTimeout(ttlTimers[key]); delete ttlTimers[key]; delete ttlExpiry[key]; }
+      if (ttlTimers[key]) {
+        clearTimeout(ttlTimers[key]);
+        delete ttlTimers[key];
+        delete ttlExpiry[key];
+      }
       removeFromLRU(key);
-      
+
       updateSkipList();
 
       log(`DEL ${key} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
     }
   } else if (op === "LINK") {
-    if (!key || !val) {
-      log("LINK requires two keys (usage: LINK parent child)");
-    } else {
+    if (!key || !val) log("LINK requires A B");
+    else {
       links.push({ parent: key, child: val });
       log(`LINK ${key} -> ${val}`);
     }
   } else if (op === "EXPIRE") {
     const ttl = parseInt(val, 10);
-    if (!key || isNaN(ttl)) {
-      log("EXPIRE requires: EXPIRE key seconds");
-    } else if (cache.has(key)) {
+    if (!key || isNaN(ttl)) log("EXPIRE key ttl");
+    else if (cache.has(key)) {
       const entry = cache.get(key);
       entry.ttl = ttl;
       entry.status = "Expiring";
       entry.statusColor = "#ffd166";
       scheduleTTL(key, ttl);
       log(`EXPIRE ${key} set for ${ttl}s`);
-    } else {
-      log(`EXPIRE: ${key} not present`);
-    }
+    } else log(`EXPIRE: ${key} not present`);
+
   } else if (op === "SIZE") {
     log(`Cache size: ${cache.size}`);
   } else if (op === "CLEAR") {
@@ -319,12 +327,10 @@ function executeCommand(cmd) {
     lruList = [];
     log("Cache cleared");
 
-    bloomBits = Array(16).fill(0);
     accessCount = {};
-    updateBloom();
     updateTopK();
     updateSkipList();
-    
+
   } else if (op === "PREFIX") {
     if (!key) log("PREFIX p");
     else updateTrie(key);
@@ -337,9 +343,10 @@ function executeCommand(cmd) {
         .sort((a,b)=>b[1]-a[1])
         .slice(0,k);
       const el = document.getElementById("topk-box");
-      if (el) el.textContent = arr.length ? arr.map(x=>`${x[0]} (${x[1]})`).join("\n") : "(empty)";
-    }  
-  
+      if (el) el.textContent =
+        arr.length ? arr.map(x => `${x[0]} (${x[1]})`).join("\n") : "(empty)";
+    }
+
   } else {
     log(`Unknown command: ${cmd}`);
   }
@@ -363,35 +370,13 @@ if (inputEl) {
     }
   });
 }
+
 updateCacheTable();
 renderGraph();
 updateHashmapBuckets();
 updateLRU();
 updateTTLHeap();
 
-let bloomBits = Array(16).fill(0);
-let accessCount = {};
-
-function updateBloom() {
-  const el = document.getElementById("bloom-box");
-  if (!el) return;
-  el.textContent = bloomBits.join(" ");
-}
-
-function hash1(s) {
-  let h = 0;
-  for (let c of s) h = (h * 31 + c.charCodeAt(0)) % bloomBits.length;
-  return h;
-}
-function hash2(s) {
-  let h = 7;
-  for (let c of s) h = (h * 17 + c.charCodeAt(0)) % bloomBits.length;
-  return h;
-}
-function bloomInsert(k) {
-  bloomBits[hash1(k)] = 1;
-  bloomBits[hash2(k)] = 1;
-}
 
 function updateSkipList() {
   const keys = Array.from(cache.keys()).sort();
@@ -408,9 +393,26 @@ function updateTrie(prefix) {
   el.textContent = matches.length ? matches.join(" ") : "(no match)";
 }
 
+let accessCount = {};
 function updateTopK() {
   const arr = Object.entries(accessCount).sort((a,b)=>b[1]-a[1]);
   const el = document.getElementById("topk-box");
   if (!el) return;
-  el.textContent = arr.length ? arr.map(x=>`${x[0]} (${x[1]})`).join("\n") : "(empty)";
+  el.textContent = arr.length ?
+    arr.map(x => `${x[0]} (${x[1]})`).join("\n") :
+    "(empty)";
+}
+
+function cascadeDelete(key) {
+  const children = links.filter(l => l.parent === key).map(l => l.child);
+  for (const c of children) {
+    cache.delete(c);
+    removeFromLRU(c);
+    delete accessCount[c];
+    cascadeDelete(c);
+  }
+  for (let i = links.length - 1; i >= 0; i--) {
+    if (links[i].parent === key || links[i].child === key)
+      links.splice(i, 1);
+  }
 }
