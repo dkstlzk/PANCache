@@ -1,11 +1,104 @@
+const BACKEND_URL = "http://localhost:8080";
+let backendOnline = false;
 
 const cache = new Map();
 const links = [];
 const svg = d3.select("#graph");
-let ttlTimers = {};           
-let ttlExpiry = {};    
-let lruList = [];           
+let ttlTimers = {};
+let ttlExpiry = {};
+let lruList = [];
 
+function detectCommandType(cmd) {
+  return cmd.trim().split(/\s+/)[0]?.toUpperCase();
+}
+
+// send raw command to backend
+async function sendCommandToBackend(cmd) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/cmd`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: cmd
+    });
+
+    backendOnline = true;
+
+    const text = await res.text();
+    log(text.trim() || `(executed ${cmd})`);
+
+    await fetchBackendState();
+
+  } catch (err) {
+    backendOnline = false;
+    log("⚠ Backend offline. Running locally.");
+    executeCommand(cmd);
+  }
+}
+
+// fetch backend full state object
+async function fetchBackendState() {
+  try {
+    const r = await fetch(`${BACKEND_URL}/state`);
+    if (!r.ok) throw new Error("bad");
+
+    backendOnline = true;
+
+    const state = await r.json();
+    applyBackendState(state);
+
+  } catch (err) {
+    backendOnline = false;
+  }
+}
+
+// apply backend → frontend state mapping
+function applyBackendState(s) {
+
+  // cache
+  if (s.entries) {
+    cache.clear();
+    for (const e of s.entries) {
+      cache.set(e.key, {
+        value: e.value,
+        ttl: e.ttl,
+        status: e.status || "Synced",
+        statusColor: "#66fcf1"
+      });
+    }
+  }
+
+  if (s.links) {
+    links.length = 0;
+    for (const l of s.links) links.push(l);
+  }
+
+  if (s.lru) lruList = [...s.lru];
+
+  if (s.ttlExpiry) ttlExpiry = { ...s.ttlExpiry };
+
+  if (s.topk) {
+    const el = document.getElementById("topk-box");
+    el.textContent = s.topk.length
+      ? s.topk.map(x => `${x.key} (${x.count})`).join("\n")
+      : "(empty)";
+  }
+
+  if (s.skiplist) {
+    document.getElementById("skiplist-box").textContent =
+      s.skiplist.length ? s.skiplist.join(" → ") : "(empty)";
+  }
+
+  if (s.trie_matches) {
+    document.getElementById("trie-box").textContent =
+      s.trie_matches.length ? s.trie_matches.join(" ") : "(no match)";
+  }
+
+  updateCacheTable();
+  renderGraph();
+  updateLRU();
+  updateHashmapBuckets();
+  updateTTLHeap();
+}
 
 function getSvgSize() {
   const node = svg.node();
@@ -44,9 +137,7 @@ function updateCacheTable() {
   updateTTLHeap();
 }
 
-
 function updateHashmapBuckets() {
-
   const buckets = 6;
   const arr = Array.from({ length: buckets }, () => []);
   for (const [key, obj] of cache.entries()) {
@@ -83,7 +174,10 @@ function updateTTLHeap() {
   const now = Date.now();
   const arr = Object.keys(ttlExpiry)
     .filter(k => cache.has(k))
-    .map(k => ({ key: k, left: Math.max(0, Math.round((ttlExpiry[k] - now) / 1000)) }))
+    .map(k => ({
+      key: k,
+      left: Math.max(0, Math.round((ttlExpiry[k] - now) / 1000))
+    }))
     .sort((a, b) => a.left - b.left);
 
   if (!arr.length) {
@@ -152,8 +246,8 @@ function renderGraph() {
     .style("pointer-events", "none");
 
   const radius = 20;
-  const clampX = (x) => Math.max(radius, Math.min(width - radius, x));
-  const clampY = (y) => Math.max(radius, Math.min(height - radius, y));
+  const clampX = x => Math.max(radius, Math.min(width - radius, x));
+  const clampY = y => Math.max(radius, Math.min(height - radius, y));
 
   const dragHandler = d3.drag()
     .on("start", (event, d) => {
@@ -200,23 +294,20 @@ function renderGraph() {
   }, 2500);
 }
 
-
 // LRU Helpers
 function touchLRUOnAccess(key) {
   lruList = lruList.filter(k => k !== key);
-  lruList.unshift(key); 
+  lruList.unshift(key);
 }
 
 function removeFromLRU(key) {
   lruList = lruList.filter(k => k !== key);
 }
 
-
 // TTL Logic
 function scheduleTTL(key, seconds) {
-  if (ttlTimers[key]) {
-    clearTimeout(ttlTimers[key]);
-  }
+  if (ttlTimers[key]) clearTimeout(ttlTimers[key]);
+
   if (seconds <= 0) {
     cache.delete(key);
     delete ttlTimers[key];
@@ -251,7 +342,7 @@ function executeCommand(cmd) {
     if (!key) {
       log("SET requires a key (usage: SET key value)");
     } else {
-      const valueToSet = (val === undefined) ? "" : val;
+      const valueToSet = val ?? "";
       cache.set(key, {
         value: valueToSet,
         ttl: null,
@@ -259,7 +350,6 @@ function executeCommand(cmd) {
         statusColor: "#66fcf1"
       });
       touchLRUOnAccess(key);
-
       updateSkipList();
 
       log(`SET ${key}=${valueToSet} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
@@ -291,7 +381,6 @@ function executeCommand(cmd) {
         delete ttlExpiry[key];
       }
       removeFromLRU(key);
-
       updateSkipList();
 
       log(`DEL ${key} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
@@ -303,16 +392,18 @@ function executeCommand(cmd) {
       log(`LINK ${key} -> ${val}`);
     }
   } else if (op === "EXPIRE") {
-    const ttl = parseInt(val, 10);
+    const ttl = parseInt(val);
     if (!key || isNaN(ttl)) log("EXPIRE key ttl");
     else if (cache.has(key)) {
-      const entry = cache.get(key);
-      entry.ttl = ttl;
-      entry.status = "Expiring";
-      entry.statusColor = "#ffd166";
+      const e = cache.get(key);
+      e.ttl = ttl;
+      e.status = "Expiring";
+      e.statusColor = "#ffd166";
       scheduleTTL(key, ttl);
       log(`EXPIRE ${key} set for ${ttl}s`);
-    } else log(`EXPIRE: ${key} not present`);
+    } else {
+      log(`EXPIRE: ${key} not present`);
+    }
 
   } else if (op === "SIZE") {
     log(`Cache size: ${cache.size}`);
@@ -325,9 +416,9 @@ function executeCommand(cmd) {
       delete ttlExpiry[k];
     }
     lruList = [];
+    accessCount = {};
     log("Cache cleared");
 
-    accessCount = {};
     updateTopK();
     updateSkipList();
 
@@ -340,10 +431,10 @@ function executeCommand(cmd) {
     if (isNaN(k)) log("TOPK k");
     else {
       const arr = Object.entries(accessCount)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,k);
-      const el = document.getElementById("topk-box");
-      if (el) el.textContent =
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, k);
+
+      document.getElementById("topk-box").textContent =
         arr.length ? arr.map(x => `${x[0]} (${x[1]})`).join("\n") : "(empty)";
     }
 
@@ -362,11 +453,13 @@ const inputEl = document.getElementById("command-input");
 if (inputEl) {
   inputEl.addEventListener("keydown", e => {
     if (e.key === "Enter") {
-      const val = e.target.value.trim();
-      if (val.length) {
-        executeCommand(val);
-        e.target.value = "";
-      }
+      const cmd = e.target.value.trim();
+      if (!cmd.length) return;
+
+      if (backendOnline) sendCommandToBackend(cmd);
+      else executeCommand(cmd);
+
+      e.target.value = "";
     }
   });
 }
@@ -377,11 +470,9 @@ updateHashmapBuckets();
 updateLRU();
 updateTTLHeap();
 
-
 function updateSkipList() {
   const keys = Array.from(cache.keys()).sort();
   const el = document.getElementById("skiplist-box");
-  if (!el) return;
   el.textContent = keys.length ? keys.join(" → ") : "(empty)";
 }
 
@@ -389,18 +480,15 @@ function updateTrie(prefix) {
   const keys = Array.from(cache.keys());
   const matches = keys.filter(k => k.startsWith(prefix));
   const el = document.getElementById("trie-box");
-  if (!el) return;
   el.textContent = matches.length ? matches.join(" ") : "(no match)";
 }
 
 let accessCount = {};
 function updateTopK() {
-  const arr = Object.entries(accessCount).sort((a,b)=>b[1]-a[1]);
+  const arr = Object.entries(accessCount).sort((a, b) => b[1] - a[1]);
   const el = document.getElementById("topk-box");
-  if (!el) return;
-  el.textContent = arr.length ?
-    arr.map(x => `${x[0]} (${x[1]})`).join("\n") :
-    "(empty)";
+  el.textContent =
+    arr.length ? arr.map(x => `${x[0]} (${x[1]})`).join("\n") : "(empty)";
 }
 
 function cascadeDelete(key) {
