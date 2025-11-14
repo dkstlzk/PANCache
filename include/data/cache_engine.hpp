@@ -8,7 +8,7 @@
 //#include "../depend/graph.hpp"
 #include "data/trie.hpp"
 #include "data/bloom_filter.hpp"  
-
+#include "analytics/topk.hpp"
 
 
 using namespace std;
@@ -32,6 +32,8 @@ public:
 
     size_t size() const;
     vector<string> prefix(const string& p) const;
+    vector<pair<string,int>> topK(int k) const;
+
 
 private:
     LRUCache<string, string> lru_;
@@ -39,7 +41,8 @@ private:
     TTLHeap<string, string> ttl_heap_;
     PANCache::Depend::Graph graph_;
     Trie trie_;  
-    //Trie trie;
-
+    void cleanupExpiredKeys();
+    void deleteCascade(const string& key);
     BloomFilter bloom_; 
+    unordered_map<string, int> freqMap_;
 };

@@ -13,7 +13,6 @@ public:
     explicit CommandParser(CacheEngine& engine);
     void handleCommand(const string& input);
     void printHelp() const;
-    void cmdPrefix(const vector<string>& args);
 
 private:
     CacheEngine& engine_;
@@ -22,7 +21,7 @@ private:
     unordered_map<string, CommandHandler> commands_;
 
     void registerCommands();
-    vector<string> tokenize(const string& line) const; 
+    vector<string> tokenize(const string& line) const;
 
     void cmdSet(const vector<string>& args);
     void cmdGet(const vector<string>& args);
@@ -30,4 +29,7 @@ private:
     void cmdLink(const vector<string>& args);
     void cmdExpire(const vector<string>& args);
     void cmdSize(const vector<string>& args);
+    void cmdSearch(const vector<string>& args);   
+    void cmdPrefix(const vector<string>& args);   
+    void cmdTopK(const vector<string>& args);     
 };
