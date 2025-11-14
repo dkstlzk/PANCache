@@ -238,7 +238,10 @@ EXPIRE key ttl
 SIZE
 PREFIX ab
 TOPK k
+HELP
+SEARCH
 CLEAR
+EXIT
 ```
 
 ---
