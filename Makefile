@@ -1,8 +1,7 @@
 # ===========================================
-# 🧠 PANCache Unified Build System (Cross-Platform)
+# 🧠 PANCache Unified Build System (Final)
 # ===========================================
 
-# -------- Platform Handling --------
 ifeq ($(OS),Windows_NT)
     MKDIR = if not exist "$(subst /,\\,$(1))" mkdir "$(subst /,\\,$(1))"
     RMDIR = if exist "$(subst /,\\,$(1))" rmdir /s /q "$(subst /,\\,$(1))"
@@ -13,7 +12,7 @@ else
     EXE :=
 endif
 
-# -------- Toolchain Config --------
+# -------- Toolchain --------
 CXX       := g++
 CXXSTD    := -std=c++17
 CXXWARN   := -Wall -Wextra
@@ -37,18 +36,27 @@ OBJ_DIR       := $(BUILD_DIR)/obj
 # 🧩 Source Files
 # ===========================================
 MAIN_SRC := $(SRC_DIR)/main.cpp
-DATA_SRC := $(DATA_DIR)/hashmap.cpp $(DATA_DIR)/lru.cpp $(DATA_DIR)/ttl_heap.cpp $(DATA_DIR)/cache_engine.cpp
+
+DATA_SRC := \
+    $(DATA_DIR)/hashmap.cpp \
+    $(DATA_DIR)/lru.cpp \
+    $(DATA_DIR)/ttl_heap.cpp \
+    $(DATA_DIR)/cache_engine.cpp \
+    $(DATA_DIR)/trie.cpp \
+    $(DATA_DIR)/bloom_filter.cpp
+
 DEPEND_SRC := $(DEPEND_DIR)/graph.cpp
 ANALYTICS_SRC := $(ANALYTICS_DIR)/topk.cpp
 CLI_SRC := $(CLI_DIR)/command_parser.cpp
 UTIL_SRC := $(UTIL_DIR)/logger.cpp
 
 # ===========================================
-# 🧪 Test Sources
+# 🧪 Tests
 # ===========================================
 TESTS := \
-    test_hashmap test_lru test_heap test_skiplist test_graph \
-    test_cache test_integration test_cli test_logger
+    test_hashmap test_lru test_heap test_skiplist \
+    test_graph test_cache test_integration test_cli \
+    test_logger test_trie test_topk
 
 # ===========================================
 # 🧱 Build Targets
@@ -79,57 +87,49 @@ $(OBJ_DIR):
 all: $(MAIN_TARGET)
 .DEFAULT_GOAL := help
 
-$(MAIN_TARGET): $(ALL_OBJ) | $(BUILD_DIR)
+$(MAIN_TARGET): $(ALL_OBJ)
 	@echo "🚀 Building PANCache Core..."
 	$(CXX) $(CXXFLAGS) $^ -o $@
-	@echo "✅ Built main executable: $@"
+	@echo "✅ Built: $@"
 
 # ===========================================
 # 🧩 Object Compilation
 # ===========================================
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/data_%.o: $(DATA_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/depend_%.o: $(DEPEND_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/analytics_%.o: $(ANALYTICS_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/cli_%.o: $(CLI_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/utils_%.o: $(UTIL_DIR)/%.cpp | $(OBJ_DIR)
-	@echo "Compiling $<"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # ===========================================
-# 🧪 Tests
+# 🧪 Test Build Rules
 # ===========================================
-# 👇 Fixed line: filter out main.o to avoid duplicate main()
-$(BUILD_DIR)/%$(EXE): $(TEST_DIR)/%.cpp $(filter-out $(MAIN_OBJ),$(ALL_OBJ)) | $(BUILD_DIR)
+$(BUILD_DIR)/%$(EXE): $(TEST_DIR)/%.cpp $(filter-out $(MAIN_OBJ),$(ALL_OBJ))
 	@echo "🧩 Building test: $@"
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 test_%: $(BUILD_DIR)/%$(EXE)
-	@echo "Running test: $<"
-	@$(BUILD_DIR)/$*$(EXE)
+	$(BUILD_DIR)/$*$(EXE)
 
 test_all: $(TEST_TARGETS)
 	@echo "🎯 Running all tests..."
 	@for t in $(TESTS); do \
-		echo "👉 Running $$t..."; \
+		echo ""; echo "👉 Running $$t..."; \
 		$(BUILD_DIR)/$$t$(EXE) || exit 1; \
 	done
-	@echo "✅ All tests passed!"
+	@echo ""; echo "✅ ALL TESTS PASSED!"
 
 # ===========================================
 # 🧹 Clean + Help
@@ -137,17 +137,17 @@ test_all: $(TEST_TARGETS)
 clean:
 	@echo "🧹 Cleaning build directory..."
 	@$(call RMDIR,$(BUILD_DIR))
-	@echo "✅ Clean complete."
+	@echo "Done."
 
 help:
-	@echo ""
-	@echo "🧠 PANCache Build System — Commands"
-	@echo "----------------------------------"
-	@echo "make all              → Build main executable"
-	@echo "make test_all         → Build + run all tests"
-	@echo "make test_<name>      → Build + run individual test"
-	@echo "make clean            → Remove build directory"
-	@echo "make help             → Show this help"
-	@echo ""
+	@echo ""; \
+	echo "🧠 PANCache Build System — Commands"; \
+	echo "----------------------------------"; \
+	echo "make all           → Build main executable"; \
+	echo "make test_all      → Build + run ALL tests"; \
+	echo "make test_<name>   → Build + run an individual test"; \
+	echo "make clean         → Remove build directory"; \
+	echo "make help          → Show this help"; \
+	echo "";
 
-.PHONY: all clean help test_all $(patsubst %,test_%,$(TESTS))
+.PHONY: all clean help test_all
