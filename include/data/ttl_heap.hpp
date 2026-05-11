@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 #include <utility>
+#include <optional>
 
 using namespace std;
 
@@ -28,7 +29,7 @@ private:
         TimePoint expiry;
 
         bool operator<(const HeapNode& other) const {
-            return expiry > other.expiry;
+            return expiry < other.expiry;
         }
     };
 
@@ -38,4 +39,11 @@ private:
     void heapifyUp(size_t index);
     void heapifyDown(size_t index);
     void swapNodes(size_t i, size_t j);
+
+public:
+    bool erase(const Key& key);
+    bool getExpiry(const Key& key, TimePoint& expiry) const;
+    unordered_map<Key, long long> getExpiryEpochMs() const;
+    unordered_map<Key, int> getRemainingSeconds() const;
+    void clear();
 };

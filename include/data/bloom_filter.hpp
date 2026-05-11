@@ -22,6 +22,7 @@ public:
 
     void insert(const string &key);
     bool possiblyExists(const string &key) const;
+    void clear();
 };
 
 #endif

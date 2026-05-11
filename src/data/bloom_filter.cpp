@@ -1,4 +1,5 @@
 #include "data/bloom_filter.hpp"
+#include <algorithm>
 using namespace std;
 
 BloomFilter::BloomFilter(int m, int k) {
@@ -21,4 +22,8 @@ bool BloomFilter::possiblyExists(const string &key) const{
             return false;     
     }
     return true;             
+}
+
+void BloomFilter::clear() {
+    std::fill(bits.begin(), bits.end(), false);
 }

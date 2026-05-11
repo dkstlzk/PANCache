@@ -40,6 +40,8 @@ public:
 
     size_t size() const { return count; }
     void clear();
+    vector<K> keys() const;
+    vector<vector<pair<K, V>>> buckets() const;
 };
 
 #endif 

@@ -26,6 +26,36 @@ void HashMap<K, V>::clear() {
     }
     count = 0;
 }
+
+template <typename K, typename V>
+vector<K> HashMap<K, V>::keys() const {
+    vector<K> out;
+    out.reserve(count);
+    for (auto head : table) {
+        Entry* curr = head;
+        while (curr) {
+            out.push_back(curr->key);
+            curr = curr->next;
+        }
+    }
+    return out;
+}
+
+template <typename K, typename V>
+vector<vector<pair<K, V>>> HashMap<K, V>::buckets() const {
+    vector<vector<pair<K, V>>> out;
+    out.reserve(table.size());
+    for (auto head : table) {
+        vector<pair<K, V>> bucket;
+        Entry* curr = head;
+        while (curr) {
+            bucket.push_back({curr->key, curr->value});
+            curr = curr->next;
+        }
+        out.push_back(std::move(bucket));
+    }
+    return out;
+}
 template <typename K, typename V>
 void HashMap<K, V>::resizeIfNeeded() {
     if (static_cast<float>(count) / static_cast<float>(capacity) < load_factor)

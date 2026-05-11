@@ -42,13 +42,13 @@ void LRUCache<K, V>::moveToFront(Node* node) {
 }
 
 template <typename K, typename V>
-void LRUCache<K, V>::put(const K& key, const V& value) {
+optional<K> LRUCache<K, V>::put(const K& key, const V& value) {
     auto nodeOpt = cacheMap.get(key);
     if (nodeOpt.has_value()) {
         Node* node = static_cast<Node*>(nodeOpt.value());
         node->value = value;
         moveToFront(node);
-        return;
+        return nullopt;
     }
 
     Node* newNode = new Node(key, value);
@@ -58,19 +58,22 @@ void LRUCache<K, V>::put(const K& key, const V& value) {
 
     if (count > capacity) {
         Node* lru = tail;
+        K evictedKey = lru->key;
         cacheMap.erase(lru->key);
         removeNode(lru);
         delete lru;
         count--;
+        return evictedKey;
     }
+
+    return nullopt;
 }
 
 template <typename K, typename V>
-V LRUCache<K, V>::get(const K& key) {
+optional<V> LRUCache<K, V>::get(const K& key) {
     auto nodeOpt = cacheMap.get(key);
     if (!nodeOpt.has_value()) {
-        cout << "Key " << key << " not found!\n";
-        return V();  
+        return nullopt;
     }
     Node* node = static_cast<Node*>(nodeOpt.value());
     moveToFront(node);
@@ -99,6 +102,32 @@ void LRUCache<K, V>::display() const {
         curr = curr->next;
     }
     cout << endl;
+}
+
+template <typename K, typename V>
+vector<K> LRUCache<K, V>::getOrder() const {
+    vector<K> out;
+    out.reserve(count);
+    Node* curr = head;
+    while (curr) {
+        out.push_back(curr->key);
+        curr = curr->next;
+    }
+    return out;
+}
+
+template <typename K, typename V>
+void LRUCache<K, V>::clear() {
+    Node* curr = head;
+    while (curr) {
+        Node* temp = curr;
+        curr = curr->next;
+        delete temp;
+    }
+    head = nullptr;
+    tail = nullptr;
+    count = 0;
+    cacheMap.clear();
 }
 
 template class LRUCache<int, int>;

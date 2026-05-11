@@ -11,25 +11,26 @@ using namespace std;
 class CommandParser {
 public:
     explicit CommandParser(CacheEngine& engine);
-    void handleCommand(const string& input);
-    void printHelp() const;
+    string handleCommand(const string& input);
+    string helpText() const;
 
 private:
     CacheEngine& engine_;
 
-    using CommandHandler = function<void(const vector<string>&)>;
+    using CommandHandler = function<string(const vector<string>&)>;
     unordered_map<string, CommandHandler> commands_;
 
     void registerCommands();
     vector<string> tokenize(const string& line) const;
 
-    void cmdSet(const vector<string>& args);
-    void cmdGet(const vector<string>& args);
-    void cmdDel(const vector<string>& args);
-    void cmdLink(const vector<string>& args);
-    void cmdExpire(const vector<string>& args);
-    void cmdSize(const vector<string>& args);
-    void cmdSearch(const vector<string>& args);   
-    void cmdPrefix(const vector<string>& args);   
-    void cmdTopK(const vector<string>& args);     
+    string cmdSet(const vector<string>& args);
+    string cmdGet(const vector<string>& args);
+    string cmdDel(const vector<string>& args);
+    string cmdLink(const vector<string>& args);
+    string cmdExpire(const vector<string>& args);
+    string cmdSize(const vector<string>& args);
+    string cmdSearch(const vector<string>& args);   
+    string cmdPrefix(const vector<string>& args);   
+    string cmdTopK(const vector<string>& args);
+    string cmdClear(const vector<string>& args);
 };

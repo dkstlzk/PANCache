@@ -1,27 +1,31 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
 using namespace std;
 
 class Trie {
 private:
     struct Node {
         bool isEnd;
-        Node* children[26];
-        Node() : isEnd(false) {
-            for (int i=0; i<26; i++) children[i]= nullptr;
-        }
+        unordered_map<char, Node*> children;
+        Node() : isEnd(false) {}
     };
 
     Node* root;
 
     void collect(Node* node, string prefix, vector<string>& result) const;
 
+    void deleteSubtree(Node* node);
+
     // remove support
     bool removeHelper(Node* node, const string& word, int depth);
 
 public:
     Trie() { root = new Node(); }
+    ~Trie();
+    Trie(const Trie&) = delete;
+    Trie& operator=(const Trie&) = delete;
 
     void insert(const string& word);
     bool search(const string& word) const;
@@ -32,4 +36,6 @@ public:
 
     // remove key
     void remove(const string& word);
+
+    void clear();
 };

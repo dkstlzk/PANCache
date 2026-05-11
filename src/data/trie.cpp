@@ -1,66 +1,54 @@
 #include "data/trie.hpp"
+#include <algorithm>
 
+Trie::~Trie() {
+    deleteSubtree(root);
+    root = nullptr;
+}
+
+void Trie::deleteSubtree(Node* node) {
+    if (!node) return;
+    for (auto& kv : node->children) {
+        deleteSubtree(kv.second);
+    }
+    delete node;
+}
 
 void Trie::insert(const string& word) {
-    Node* curr= root;
-    for (char c: word) {
-        if (!isalpha(c)) continue;
-        c= tolower(c);
-
-        int idx= c-'a';
-        if (!curr->children[idx])
-            curr->children[idx]= new Node();
-        curr= curr->children[idx];
+    if (word.empty()) return;
+    Node* curr = root;
+    for (char c : word) {
+        auto& child = curr->children[c];
+        if (!child)
+            child = new Node();
+        curr = child;
     }
-    curr->isEnd= true;
+    curr->isEnd = true;
 }
 
 bool Trie::search(const string& word) const {
-    Node* curr= root;
-    for (char c: word) {
-        if (!isalpha(c)) continue;
-        c= tolower(c);
-
-        int idx = c-'a';
-        if (!curr->children[idx])
+    if (word.empty()) return false;
+    Node* curr = root;
+    for (char c : word) {
+        auto it = curr->children.find(c);
+        if (it == curr->children.end())
             return false;
-
-        curr= curr->children[idx];
+        curr = it->second;
     }
     return curr->isEnd;
 }
 
 vector<string> Trie::startsWith(const string& prefix) const {
-    Node* curr = root;
-
-    for (char c: prefix) {
-        if (!isalpha(c)) continue;
-        c = tolower(c);
-
-        int idx = c - 'a';
-        if (!curr->children[idx])
-            return {};  
-
-        curr = curr->children[idx];
-    }
-
-    vector<string> result;
-    collect(curr, prefix, result);
-    return result;
+    return getWordsWithPrefix(prefix);
 }
 
-
 vector<string> Trie::getWordsWithPrefix(const string& prefix) const {
-    Node* curr= root;
-    for (char c: prefix) {
-        if (!isalpha(c)) continue;
-        c= tolower(c);
-
-        int idx= c-'a';
-        if (!curr->children[idx])
-            return {};  // no results
-
-        curr= curr->children[idx];
+    Node* curr = root;
+    for (char c : prefix) {
+        auto it = curr->children.find(c);
+        if (it == curr->children.end())
+            return {};
+        curr = it->second;
     }
 
     vector<string> result;
@@ -74,48 +62,43 @@ void Trie::collect(Node* node, string prefix, vector<string>& result) const {
     if (node->isEnd)
         result.push_back(prefix);
 
-    for (int i = 0; i < 26; i++) {
-        if (node->children[i]) {
-            char c = 'a' + i;
-            collect(node->children[i], prefix + c, result);
-        }
+    vector<pair<char, Node*>> ordered(node->children.begin(), node->children.end());
+    sort(ordered.begin(), ordered.end(),
+        [](const auto& a, const auto& b) { return a.first < b.first; });
+
+    for (const auto& kv : ordered) {
+        collect(kv.second, prefix + kv.first, result);
     }
 }
 
 bool Trie::removeHelper(Node* node, const string& word, int depth) {
     if (!node) return false;
 
-    // If reached end of word
     if (depth == (int)word.size()) {
-        if (!node->isEnd) return false;  // word not present
+        if (!node->isEnd) return false;
         node->isEnd = false;
-
-        // Check if node has any children
-        for (int i = 0; i < 26; i++)
-            if (node->children[i]) return false;  // don't delete parent
-
-        return true;  // delete this node
+        return node->children.empty();
     }
 
     char c = word[depth];
-    if (!isalpha(c)) return false;
-    c = tolower(c);
-    int idx = c - 'a';
+    auto it = node->children.find(c);
+    if (it == node->children.end()) return false;
 
-    if (removeHelper(node->children[idx], word, depth + 1)) {
-        delete node->children[idx];
-        node->children[idx] = nullptr;
-
-        // If current node has no children and isn't end of another word
-        if (!node->isEnd) {
-            for (int i = 0; i < 26; i++)
-                if (node->children[i]) return false;
-            return true;
-        }
+    if (removeHelper(it->second, word, depth + 1)) {
+        delete it->second;
+        node->children.erase(it);
+        return !node->isEnd && node->children.empty();
     }
+
     return false;
 }
 
 void Trie::remove(const string& word) {
+    if (word.empty()) return;
     removeHelper(root, word, 0);
+}
+
+void Trie::clear() {
+    deleteSubtree(root);
+    root = new Node();
 }

@@ -1,4 +1,5 @@
 #include "depend/graph.hpp"
+#include <algorithm>
 using namespace PANCache::Depend;
 using namespace std;
 
@@ -52,8 +53,10 @@ void Graph::dfs(const string &node,
 vector<string> Graph::getAllDependentsRecursive(const string &key) const {
     unordered_set<string> visited;
     vector<string> result;
-    dfs(key, visited, result);
-    result.erase(result.begin());  // remove self
+    if (!adjList.count(key)) return result;
+    for (const auto& dep : adjList.at(key))
+        dfs(dep, visited, result);
+    result.erase(remove(result.begin(), result.end(), key), result.end());
     return result;
 }
 

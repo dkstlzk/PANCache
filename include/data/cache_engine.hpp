@@ -27,6 +27,9 @@ public:
     void expire(const string& key, int ttl_seconds);
     void link(const string& from, const string& to);
     void depend(const string& parent, const string& child); 
+    void clear();
+    bool contains(const string& key) const;
+    void cleanupExpired();
 
     bool trieSearch(const string& key) const;
     vector<string> triePrefix(const string& prefix) const;
@@ -34,7 +37,10 @@ public:
     size_t size() const;
     vector<string> prefix(const string& p) const;
     vector<pair<string,int>> topK(int k) const;
-    CacheEngineState exportState() const; 
+    CacheEngineState exportState();
+
+    void setLastPrefixQuery(const string& prefix);
+    void setLastTopK(int k);
 
 private:
     LRUCache<string, string> lru_;
@@ -46,4 +52,6 @@ private:
     void deleteCascade(const string& key);
     BloomFilter bloom_; 
     unordered_map<string, int> freqMap_;
+    string last_prefix_query_;
+    int last_topk_k_ = 5;
 };

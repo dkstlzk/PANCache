@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <utility>
 
 struct CacheEntryState {
     std::string key;
@@ -23,13 +24,14 @@ struct CacheEngineState {
     std::vector<std::string> lru;  
     std::unordered_map<std::string,long long> ttl_expiry;
     std::vector<std::string> trie_matches;
+    std::vector<std::vector<std::string>> hashmap_buckets;
 };
 
 
 #include <sstream>
 #include <iomanip>
 
-static inline std::string json_escape(const std::string &s) {
+inline std::string json_escape(const std::string &s) {
     std::string out;
     out.reserve(s.size());
     for (unsigned char c : s) {
@@ -49,7 +51,7 @@ static inline std::string json_escape(const std::string &s) {
     return out;
 }
 
-static inline std::string to_json(const CacheEngineState &st) {
+inline std::string to_json(const CacheEngineState &st) {
     std::ostringstream ss;
 
     ss << "{";
@@ -105,14 +107,52 @@ static inline std::string to_json(const CacheEngineState &st) {
     }
     ss << "],";
 
-    // lru (empty because you don't expose)
-    ss << "\"lru\":[],";
+    // lru
+    ss << "\"lru\":[";
+    bool flru = true;
+    for (auto &k : st.lru) {
+        if (!flru) ss << ",";
+        flru = false;
+        ss << "\"" << json_escape(k) << "\"";
+    }
+    ss << "],";
 
-    // ttl expiry (empty)
-    ss << "\"ttlExpiry\":{},";
+    // ttl expiry
+    ss << "\"ttlExpiry\":{";
+    bool ft = true;
+    for (auto &p : st.ttl_expiry) {
+        if (!ft) ss << ",";
+        ft = false;
+        ss << "\"" << json_escape(p.first) << "\":" << p.second;
+    }
+    ss << "},";
 
-    // trie matches (frontend overwrites)
-    ss << "\"trie_matches\":[]";
+    // trie matches
+    ss << "\"trie_matches\":[";
+    bool ftm = true;
+    for (auto &k : st.trie_matches) {
+        if (!ftm) ss << ",";
+        ftm = false;
+        ss << "\"" << json_escape(k) << "\"";
+    }
+    ss << "],";
+
+    // hashmap buckets
+    ss << "\"hashmapBuckets\":[";
+    bool fb = true;
+    for (auto &bucket : st.hashmap_buckets) {
+        if (!fb) ss << ",";
+        fb = false;
+        ss << "[";
+        bool fbe = true;
+        for (auto &cell : bucket) {
+            if (!fbe) ss << ",";
+            fbe = false;
+            ss << "\"" << json_escape(cell) << "\"";
+        }
+        ss << "]";
+    }
+    ss << "]";
 
     ss << "}";
 

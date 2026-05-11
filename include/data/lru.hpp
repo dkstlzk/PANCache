@@ -2,7 +2,8 @@
 #define LRU_CACHE_HPP
 
 #include "hashmap.hpp"
-#include <iostream>
+#include <optional>
+#include <vector>
 using namespace std;
 
 template <typename K, typename V>
@@ -31,11 +32,13 @@ public:
     explicit LRUCache(int cap);
     ~LRUCache();
 
-    void put(const K& key, const V& value);
-    V get(const K& key);
+    std::optional<K> put(const K& key, const V& value);
+    std::optional<V> get(const K& key);
     void display() const;
     bool erase(const K& key);
     size_t size() const { return count; }
+    std::vector<K> getOrder() const;
+    void clear();
 };
 
 #endif

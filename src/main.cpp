@@ -4,11 +4,16 @@
 #include "utils/logger.hpp"
 #include <csignal>
 
+namespace {
+HttpServer* g_server = nullptr;
+
 void signalHandler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         auto& log = PANCache::Utils::Logger::getInstance();
         log.info("Received shutdown signal");
+        if (g_server) g_server->stop();
     }
+}
 }
 
 int main() {
@@ -17,7 +22,7 @@ int main() {
     auto& log = Logger::getInstance();
     log.setLogLevel(Logger::Level::INFO);
     
-    printf("Initializing PANCache...");
+    log.info("Initializing PANCache...");
     
     CacheEngine cache(50);
     log.info("Cache engine initialized with capacity: 50");
@@ -27,6 +32,7 @@ int main() {
     
     HttpServer http(cache, cli);
     log.debug("HTTP server initialized");
+    g_server = &http;
 
     std::signal(SIGINT, signalHandler);
     std::signal(SIGTERM, signalHandler);
