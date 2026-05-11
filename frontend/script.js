@@ -4,13 +4,9 @@ let backendOnline = false;
 const cache = new Map();
 const links = [];
 const svg = d3.select("#graph");
-let ttlTimers = {};
 let ttlExpiry = {};
 let lruList = [];
-
-function detectCommandType(cmd) {
-  return cmd.trim().split(/\s+/)[0]?.toUpperCase();
-}
+let hashmapBuckets = [];
 
 // send raw command to backend
 async function sendCommandToBackend(cmd) {
@@ -30,8 +26,7 @@ async function sendCommandToBackend(cmd) {
 
   } catch (err) {
     backendOnline = false;
-    log("⚠ Backend offline. Running locally.");
-    executeCommand(cmd);
+    log("⚠ Backend offline. Command not executed.");
   }
 }
 
@@ -60,7 +55,7 @@ function applyBackendState(s) {
     for (const e of s.entries) {
       cache.set(e.key, {
         value: e.value,
-        ttl: e.ttl,
+        ttl: e.ttl >= 0 ? e.ttl : null,
         status: e.status || "Synced",
         statusColor: "#66fcf1"
       });
@@ -75,6 +70,8 @@ function applyBackendState(s) {
   if (s.lru) lruList = [...s.lru];
 
   if (s.ttlExpiry) ttlExpiry = { ...s.ttlExpiry };
+
+  if (s.hashmapBuckets) hashmapBuckets = [...s.hashmapBuckets];
 
   if (s.topk) {
     const el = document.getElementById("topk-box");
@@ -138,23 +135,13 @@ function updateCacheTable() {
 }
 
 function updateHashmapBuckets() {
-  const buckets = 6;
-  const arr = Array.from({ length: buckets }, () => []);
-  for (const [key, obj] of cache.entries()) {
-    let idx;
-    if (!key || typeof key !== "string") {
-      idx = Math.abs(String(key).length) % buckets;
-    } else {
-      let sum = 0;
-      for (let i = 0; i < key.length; ++i) sum = (sum + key.charCodeAt(i)) | 0;
-      idx = Math.abs(sum) % buckets;
-    }
-    arr[idx].push(`${key}:${obj.value}`);
-  }
-
   const el = document.getElementById("hashmap-buckets");
   if (!el) return;
-  el.textContent = arr.map((b, i) =>
+  if (!hashmapBuckets.length) {
+    el.textContent = "(empty)";
+    return;
+  }
+  el.textContent = hashmapBuckets.map((b, i) =>
     `Bucket ${i}: ${b.length ? b.join(", ") : "(empty)"}`
   ).join("\n");
 }
@@ -294,160 +281,6 @@ function renderGraph() {
   }, 2500);
 }
 
-// LRU Helpers
-function touchLRUOnAccess(key) {
-  lruList = lruList.filter(k => k !== key);
-  lruList.unshift(key);
-}
-
-function removeFromLRU(key) {
-  lruList = lruList.filter(k => k !== key);
-}
-
-// TTL Logic
-function scheduleTTL(key, seconds) {
-  if (ttlTimers[key]) clearTimeout(ttlTimers[key]);
-
-  if (seconds <= 0) {
-    cache.delete(key);
-    delete ttlTimers[key];
-    delete ttlExpiry[key];
-    log(`EXPIRE: ${key} removed immediately`);
-    updateCacheTable();
-    renderGraph();
-    return;
-  }
-  const expireAt = Date.now() + seconds * 1000;
-  ttlExpiry[key] = expireAt;
-  ttlTimers[key] = setTimeout(() => {
-    cache.delete(key);
-    delete ttlTimers[key];
-    delete ttlExpiry[key];
-    removeFromLRU(key);
-    log(`EXPIRE: ${key} removed after ${seconds}s`);
-    updateCacheTable();
-    renderGraph();
-  }, seconds * 1000);
-}
-
-function executeCommand(cmd) {
-  const parts = cmd.trim().split(/\s+/);
-  const op = parts[0]?.toUpperCase();
-  const key = parts[1];
-  const val = (op === "SET" ? parts.slice(2).join(" ") : parts[2]);
-  const now = performance.now();
-  if (!op) return;
-
-  if (op === "SET") {
-    if (!key) {
-      log("SET requires a key (usage: SET key value)");
-    } else {
-      const valueToSet = val ?? "";
-      cache.set(key, {
-        value: valueToSet,
-        ttl: null,
-        status: "Inserted",
-        statusColor: "#66fcf1"
-      });
-      touchLRUOnAccess(key);
-      updateSkipList();
-
-      log(`SET ${key}=${valueToSet} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
-    }
-
-  } else if (op === "GET") {
-    if (!key) log("GET requires a key");
-    else if (cache.has(key)) {
-      const entry = cache.get(key);
-      entry.status = "Accessed";
-      entry.statusColor = "#45a29e";
-      touchLRUOnAccess(key);
-
-      accessCount[key] = (accessCount[key] || 0) + 1;
-      updateTopK();
-
-      log(`GET ${key} -> ${entry.value} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
-    } else {
-      log(`GET ${key} -> [MISS]`);
-    }
-  } else if (op === "DEL") {
-    if (!key) log("DEL requires key");
-    else {
-      cascadeDelete(key);
-      cache.delete(key);
-      if (ttlTimers[key]) {
-        clearTimeout(ttlTimers[key]);
-        delete ttlTimers[key];
-        delete ttlExpiry[key];
-      }
-      removeFromLRU(key);
-      updateSkipList();
-
-      log(`DEL ${key} (latency: ${((performance.now() - now) * 1000).toFixed(2)} µs)`);
-    }
-  } else if (op === "LINK") {
-    if (!key || !val) log("LINK requires A B");
-    else {
-      links.push({ parent: key, child: val });
-      log(`LINK ${key} -> ${val}`);
-    }
-  } else if (op === "EXPIRE") {
-    const ttl = parseInt(val);
-    if (!key || isNaN(ttl)) log("EXPIRE key ttl");
-    else if (cache.has(key)) {
-      const e = cache.get(key);
-      e.ttl = ttl;
-      e.status = "Expiring";
-      e.statusColor = "#ffd166";
-      scheduleTTL(key, ttl);
-      log(`EXPIRE ${key} set for ${ttl}s`);
-    } else {
-      log(`EXPIRE: ${key} not present`);
-    }
-
-  } else if (op === "SIZE") {
-    log(`Cache size: ${cache.size}`);
-  } else if (op === "CLEAR") {
-    cache.clear();
-    links.length = 0;
-    for (const k of Object.keys(ttlTimers)) {
-      clearTimeout(ttlTimers[k]);
-      delete ttlTimers[k];
-      delete ttlExpiry[k];
-    }
-    lruList = [];
-    accessCount = {};
-    log("Cache cleared");
-
-    updateTopK();
-    updateSkipList();
-
-  } else if (op === "PREFIX") {
-    if (!key) log("PREFIX p");
-    else updateTrie(key);
-
-  } else if (op === "TOPK") {
-    const k = parseInt(key);
-    if (isNaN(k)) log("TOPK k");
-    else {
-      const arr = Object.entries(accessCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, k);
-
-      document.getElementById("topk-box").textContent =
-        arr.length ? arr.map(x => `${x[0]} (${x[1]})`).join("\n") : "(empty)";
-    }
-
-  } else {
-    log(`Unknown command: ${cmd}`);
-  }
-
-  updateCacheTable();
-  renderGraph();
-  updateHashmapBuckets();
-  updateLRU();
-  updateTTLHeap();
-}
 
 const inputEl = document.getElementById("command-input");
 if (inputEl) {
@@ -456,51 +289,12 @@ if (inputEl) {
       const cmd = e.target.value.trim();
       if (!cmd.length) return;
 
-      if (backendOnline) sendCommandToBackend(cmd);
-      else executeCommand(cmd);
+      sendCommandToBackend(cmd);
 
       e.target.value = "";
     }
   });
 }
 
-updateCacheTable();
-renderGraph();
-updateHashmapBuckets();
-updateLRU();
-updateTTLHeap();
-
-function updateSkipList() {
-  const keys = Array.from(cache.keys()).sort();
-  const el = document.getElementById("skiplist-box");
-  el.textContent = keys.length ? keys.join(" → ") : "(empty)";
-}
-
-function updateTrie(prefix) {
-  const keys = Array.from(cache.keys());
-  const matches = keys.filter(k => k.startsWith(prefix));
-  const el = document.getElementById("trie-box");
-  el.textContent = matches.length ? matches.join(" ") : "(no match)";
-}
-
-let accessCount = {};
-function updateTopK() {
-  const arr = Object.entries(accessCount).sort((a, b) => b[1] - a[1]);
-  const el = document.getElementById("topk-box");
-  el.textContent =
-    arr.length ? arr.map(x => `${x[0]} (${x[1]})`).join("\n") : "(empty)";
-}
-
-function cascadeDelete(key) {
-  const children = links.filter(l => l.parent === key).map(l => l.child);
-  for (const c of children) {
-    cache.delete(c);
-    removeFromLRU(c);
-    delete accessCount[c];
-    cascadeDelete(c);
-  }
-  for (let i = links.length - 1; i >= 0; i--) {
-    if (links[i].parent === key || links[i].child === key)
-      links.splice(i, 1);
-  }
-}
+fetchBackendState();
+setInterval(fetchBackendState, 1000);
