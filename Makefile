@@ -72,8 +72,7 @@ ANALYTICS_OBJ := $(patsubst $(ANALYTICS_DIR)/%.cpp,$(OBJ_DIR)/analytics_%.o,$(AN
 CLI_OBJ := $(patsubst $(CLI_DIR)/%.cpp,$(OBJ_DIR)/cli_%.o,$(CLI_SRC))
 UTIL_OBJ := $(patsubst $(UTIL_DIR)/%.cpp,$(OBJ_DIR)/utils_%.o,$(UTIL_SRC))
 MAIN_OBJ := $(OBJ_DIR)/main.o
-HTTP_OBJ := $(OBJ_DIR)/utils_http_server.o
-ALL_OBJ := $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OBJ) $(CLI_OBJ) $(UTIL_OBJ) $(HTTP_OBJ)
+ALL_OBJ := $(MAIN_OBJ) $(DATA_OBJ) $(DEPEND_OBJ) $(ANALYTICS_OBJ) $(CLI_OBJ) $(UTIL_OBJ)
 
 # ===========================================
 # 🧰 Directory Setup
@@ -88,7 +87,7 @@ $(OBJ_DIR):
 # 🧱 Core Build
 # ===========================================
 all: $(MAIN_TARGET)
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := all
 
 $(MAIN_TARGET): $(ALL_OBJ)
 	@echo "🚀 Building PANCache Core..."

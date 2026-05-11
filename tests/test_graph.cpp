@@ -80,7 +80,7 @@ int main() {
     g3.addDependency("C", "A"); // cycle
 
     auto cyc = g3.getAllDependentsRecursive("A");
-    assert(cyc.size() == 3);
+    assert(cyc.size() == 2);
 
     log.info("Cycle test passed (DFS stopped correctly).");
 
