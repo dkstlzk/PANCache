@@ -1,9 +1,19 @@
+# Build output
 /build/
 *.o
 *.out
 *.exe
+*.d
+
+# IDE/editor
 .vscode/
 .idea/
+*.swp
+*~
+
+# Logs
 *.log
+
+# OS artifacts
 .DS_Store
 Thumbs.db
