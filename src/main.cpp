@@ -41,13 +41,19 @@ int main() {
     http.setupRoutes();
     log.info("HTTP routes configured");
 
-    log.info("PANCache server starting on http://0.0.0.0:8080");
+    const std::string host = "127.0.0.1";
+    const int port = 8080;
+
+    log.info("PANCache server starting on http://" + host + ":" + std::to_string(port));
     log.info("Available endpoints:");
     log.info("  - GET  /health");
     log.info("  - POST /cmd");
     log.info("Press Ctrl+C to stop the server");
 
-    http.start("0.0.0.0", 8080);
+    if (!http.start(host, port)) {
+        log.error("HTTP server failed to start");
+        return 1;
+    }
 
     log.info("PANCache server stopped successfully");
     log.disableFileOutput();

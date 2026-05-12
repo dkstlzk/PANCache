@@ -2,6 +2,8 @@
 #include "cli/command_parser.hpp"
 #include "data/cache_engine_state.hpp"
 #include <iostream>
+#include <cerrno>
+#include <cstring>
 
 namespace {
 void applyCors(httplib::Response& res) {
@@ -72,9 +74,21 @@ void HttpServer::setupRoutes() {
     });
 }
 
-void HttpServer::start(const std::string& host, int port) {
+bool HttpServer::start(const std::string& host, int port) {
+    std::cout << "[HTTP] Binding to " << host << ":" << port << "\n";
+    if (!server_.bind_to_port(host, port)) {
+        std::cerr << "[HTTP] Failed to bind to " << host << ":" << port;
+#if defined(_WIN32)
+        std::cerr << " (WSA error: " << WSAGetLastError() << ")";
+#else
+        std::cerr << " (errno: " << errno << " - " << std::strerror(errno) << ")";
+#endif
+        std::cerr << "\n";
+        return false;
+    }
+
     std::cout << "[HTTP] Listening on " << host << ":" << port << "\n";
-    server_.listen(host.c_str(), port);
+    return server_.listen_after_bind();
 }
 
 void HttpServer::stop() {

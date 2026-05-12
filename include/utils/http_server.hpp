@@ -12,7 +12,7 @@ public:
     HttpServer(CacheEngine& cache, CommandParser& parser);
 
     void setupRoutes();
-    void start(const std::string& host, int port);
+    bool start(const std::string& host, int port);
     void stop();
 
 private:
