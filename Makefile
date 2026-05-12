@@ -64,7 +64,7 @@ UTIL_SRC := \
 TESTS := \
     test_hashmap test_lru test_heap test_skiplist \
     test_graph test_cache test_integration test_cli \
-    test_logger test_trie test_topk
+	test_logger test_trie test_topk test_http_cmd
 
 # ===========================================
 # 🧱 Build Targets

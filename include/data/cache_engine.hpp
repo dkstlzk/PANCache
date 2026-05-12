@@ -10,6 +10,7 @@
 #include "analytics/topk.hpp"
 
 #include "data/cache_engine_state.hpp"
+#include <mutex>
 
 class CacheEngine {
 public:
@@ -51,4 +52,5 @@ private:
     std::unordered_map<std::string, int> freqMap_;
     std::string last_prefix_query_;
     int last_topk_k_ = 5;
+    mutable std::mutex mtx_;
 };

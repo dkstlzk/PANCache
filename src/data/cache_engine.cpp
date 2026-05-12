@@ -17,6 +17,7 @@ CacheEngine::CacheEngine(size_t capacity)
     : lru_(capacity) {}
 
 void CacheEngine::set(const string& key, const string& value) {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     hashmap_.insert(key, value);
     bloom_.insert(key);
@@ -29,6 +30,7 @@ void CacheEngine::set(const string& key, const string& value) {
 }
 
 void CacheEngine::set(const string& key, const string& value, int ttl_seconds) {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     hashmap_.insert(key, value);
     bloom_.insert(key);
@@ -42,6 +44,7 @@ void CacheEngine::set(const string& key, const string& value, int ttl_seconds) {
 }
 
 optional<string> CacheEngine::get(const string& key) {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     if (!bloom_.possiblyExists(key))
         return nullopt;
@@ -58,11 +61,13 @@ optional<string> CacheEngine::get(const string& key) {
 }
 
 void CacheEngine::del(const string& key) {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     deleteCascade(key);
 }
 
 void CacheEngine::expire(const string& key, int ttl_seconds) {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     auto valueOpt = hashmap_.get(key);
     if (valueOpt.has_value()) {
@@ -72,10 +77,12 @@ void CacheEngine::expire(const string& key, int ttl_seconds) {
 }
 
 void CacheEngine::link(const string& from, const string& to) {
+    std::lock_guard<std::mutex> lk(mtx_);
     graph_.addDependency(from, to);
 }
 
 void CacheEngine::depend(const string& parent, const string& child) {
+    std::lock_guard<std::mutex> lk(mtx_);
     graph_.addDependency(parent, child);
 }
 
@@ -86,6 +93,7 @@ void CacheEngine::cleanupExpiredKeys() {
         deleteCascade(key);
 }
 void CacheEngine::deleteCascade(const string& key) {
+    // internal helper - caller is expected to hold the lock if concurrent access is possible
     unordered_set<string> to_delete;
     auto deps = graph_.getAllDependentsRecursive(key);
     to_delete.insert(deps.begin(), deps.end());
@@ -102,14 +110,17 @@ void CacheEngine::deleteCascade(const string& key) {
 }
 
 bool CacheEngine::trieSearch(const string& key) const {
+    std::lock_guard<std::mutex> lk(mtx_);
     return trie_.search(key);
 }
 
 vector<string> CacheEngine::triePrefix(const string& p) const {
+    std::lock_guard<std::mutex> lk(mtx_);
     return prefix(p);
 }
 
 vector<string> CacheEngine::prefix(const string& p) const {
+    std::lock_guard<std::mutex> lk(mtx_);
     vector<string> result= trie_.getWordsWithPrefix(p);
 
     // filter results using hashmap (BF may have false positives)
@@ -123,16 +134,18 @@ vector<string> CacheEngine::prefix(const string& p) const {
 }
 
 size_t CacheEngine::size() const {
+    std::lock_guard<std::mutex> lk(mtx_);
     return hashmap_.size();
-
 }
 
 vector<pair<string,int>> CacheEngine::topK(int k) const {
+    std::lock_guard<std::mutex> lk(mtx_);
     TopK tk;
     return tk.computeTopK(freqMap_, k);
 }
 
 CacheEngineState CacheEngine::exportState() {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
     CacheEngineState st;
     vector<string> keys = hashmap_.keys();
@@ -176,8 +189,21 @@ CacheEngineState CacheEngine::exportState() {
         else ++it;
     }
 
-    st.topk = last_topk_k_ > 0 ? topK(last_topk_k_) : vector<pair<string,int>>{};
-    st.trie_matches = last_prefix_query_.empty() ? vector<string>{} : prefix(last_prefix_query_);
+    if (last_topk_k_ > 0) {
+        TopK tk;
+        st.topk = tk.computeTopK(freqMap_, last_topk_k_);
+    } else {
+        st.topk = {};
+    }
+
+    if (!last_prefix_query_.empty()) {
+        auto raw = trie_.getWordsWithPrefix(last_prefix_query_);
+        for (auto &k : raw) {
+            if (hashmap_.contains(k)) st.trie_matches.push_back(k);
+        }
+    } else {
+        st.trie_matches = {};
+    }
 
     auto buckets = hashmap_.buckets();
     st.hashmap_buckets.reserve(buckets.size());
@@ -194,6 +220,7 @@ CacheEngineState CacheEngine::exportState() {
 }
 
 void CacheEngine::clear() {
+    std::lock_guard<std::mutex> lk(mtx_);
     hashmap_.clear();
     lru_.clear();
     ttl_heap_.clear();
@@ -206,17 +233,21 @@ void CacheEngine::clear() {
 }
 
 bool CacheEngine::contains(const string& key) const {
+    std::lock_guard<std::mutex> lk(mtx_);
     return hashmap_.contains(key);
 }
 
 void CacheEngine::cleanupExpired() {
+    std::lock_guard<std::mutex> lk(mtx_);
     cleanupExpiredKeys();
 }
 
 void CacheEngine::setLastPrefixQuery(const string& prefix) {
+    std::lock_guard<std::mutex> lk(mtx_);
     last_prefix_query_ = prefix;
 }
 
 void CacheEngine::setLastTopK(int k) {
+    std::lock_guard<std::mutex> lk(mtx_);
     last_topk_k_ = k;
 }

@@ -69,8 +69,34 @@ void HttpServer::setupRoutes() {
             res.set_content("Missing command body", "text/plain");
             return;
         }
-
-        std::string cmd = req.body;
+        std::string cmd;
+        // support both raw text/plain body and application/x-www-form-urlencoded (cmd=...)
+        auto content_type_it = req.headers.find("Content-Type");
+        std::string content_type = content_type_it != req.headers.end() ? content_type_it->second : "";
+        if (content_type.find("application/x-www-form-urlencoded") != std::string::npos) {
+            // naive parse: look for 'cmd=' and URL-decode remainder
+            auto pos = req.body.find("cmd=");
+            if (pos != std::string::npos) {
+                std::string enc = req.body.substr(pos + 4);
+                // url-decode
+                std::string dec;
+                for (size_t i = 0; i < enc.size(); ++i) {
+                    char c = enc[i];
+                    if (c == '+') dec.push_back(' ');
+                    else if (c == '%' && i + 2 < enc.size()) {
+                        auto hex = enc.substr(i + 1, 2);
+                        char ch = static_cast<char>(std::strtol(hex.c_str(), nullptr, 16));
+                        dec.push_back(ch);
+                        i += 2;
+                    } else dec.push_back(c);
+                }
+                cmd = dec;
+            } else {
+                cmd = req.body;
+            }
+        } else {
+            cmd = req.body;
+        }
         std::string output = parser_.handleCommand(cmd);
         if (output.empty()) output = "OK";
 
