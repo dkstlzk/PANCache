@@ -205,16 +205,13 @@ The visualization dashboard renders all internal data structures in real-time:
 | **SkipList** | Lexicographically sorted keys |
 | **Trie (Prefix Search)** | Results of the most recent `PREFIX` query |
 | **Top-K** | Most frequently accessed keys |
-| **Command Console** | Interactive command input with execution log |
+| **Command Console** | Interactive terminal-style console with history navigation (Up/Down arrows) and output styling |
 
 The frontend polls `/state` every 1.5 seconds (skipped when the tab is hidden). After each command, the frontend forces an immediate refresh.
 
 ### Screenshots
 
-<!-- TODO: Add screenshots of the dashboard -->
-> Dashboard screenshot: *(add screenshot here)*
->
-> Dependency graph with drag interaction: *(add GIF here)*
+*(Add screenshots of the visualizer dashboard and interactive command console here)*
 
 ---
 
