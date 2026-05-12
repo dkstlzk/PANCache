@@ -92,9 +92,6 @@ function applyBackendState(s) {
 
   updateCacheTable();
   renderGraph();
-  updateLRU();
-  updateHashmapBuckets();
-  updateTTLHeap();
 }
 
 function getSvgSize() {

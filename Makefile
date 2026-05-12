@@ -2,13 +2,12 @@
 # 🧠 PANCache Unified Build System (Final)
 # ===========================================
 
+MKDIR = mkdir -p $(1)
+RMDIR = rm -rf $(1)
+
 ifeq ($(OS),Windows_NT)
-    MKDIR = if not exist "$(subst /,\\,$(1))" mkdir "$(subst /,\\,$(1))"
-    RMDIR = if exist "$(subst /,\\,$(1))" rmdir /s /q "$(subst /,\\,$(1))"
     EXE := .exe
 else
-    MKDIR = mkdir -p $(1)
-    RMDIR = rm -rf $(1)
     EXE :=
 endif
 
@@ -20,6 +19,13 @@ CXXOPT    := -O2
 INCLUDES  := -Iinclude
 DEPFLAGS  := -MMD -MP
 CXXFLAGS  := $(CXXSTD) $(CXXWARN) $(CXXOPT) $(INCLUDES) $(DEPFLAGS)
+
+ifeq ($(OS),Windows_NT)
+	CXXFLAGS += -D_WIN32_WINNT=0x0A00
+	WIN_LIBS := -lws2_32
+else
+	WIN_LIBS :=
+endif
 
 # -------- Project Layout --------
 SRC_DIR       := src
@@ -91,7 +97,7 @@ all: $(MAIN_TARGET)
 
 $(MAIN_TARGET): $(ALL_OBJ)
 	@echo "🚀 Building PANCache Core..."
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(WIN_LIBS)
 	@echo "✅ Built: $@"
 
 # ===========================================
@@ -120,7 +126,7 @@ $(OBJ_DIR)/utils_%.o: $(UTIL_DIR)/%.cpp | $(OBJ_DIR)
 # ===========================================
 $(BUILD_DIR)/%$(EXE): $(TEST_DIR)/%.cpp $(filter-out $(MAIN_OBJ),$(ALL_OBJ))
 	@echo "🧩 Building test: $@"
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(WIN_LIBS)
 
 test_%: $(BUILD_DIR)/%$(EXE)
 	$(BUILD_DIR)/$*$(EXE)

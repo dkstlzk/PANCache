@@ -1,9 +1,7 @@
 #pragma once
 #include <string>
-using namespace std;
-
 struct CacheEntry {
-    string key;
-    string value;
+    std::string key;
+    std::string value;
     int ttl;
 };

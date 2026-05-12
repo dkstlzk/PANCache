@@ -1,297 +1,228 @@
-# ⚡ PANCache – High-Performance In-Memory Cache Engine
+# PANCache
 
-**PANCache** is a modular, multi-file in-memory cache engine built in C++ (or C), inspired by Redis and Memcached.
-It supports **fast key–value storage**, **LRU eviction**, **TTL expiration**, **Trie-based prefix search**, **Bloom filter optimization**, **dependency graphs**, and a **command-line interface (CLI)**.
+PANCache is a Redis-inspired, high-performance in-memory cache engine with a live visualization dashboard. It is built from scratch in C++17 and designed to showcase systems-level architecture, data structures, and end-to-end integration between a backend cache engine and a frontend observability layer.
 
 ---
 
-## 📝 Features
+## Project Overview
 
-### Key-Value Storage
+PANCache implements a modular cache engine with TTL, LRU eviction, dependency graphs, prefix search, and top-k analytics. The backend exposes a simple HTTP API and a frontend dashboard renders the cache state in real time. The backend is the single source of truth; the frontend is a pure renderer of backend snapshots.
 
-```cpp
-set("name", "ron");
-get("name"); // → "ron"
-```
+---
 
-### LRU Eviction
+## Features
 
-Automatically removes the **Least Recently Used** keys when the cache is full.
+- Key-value storage with custom HashMap
+- LRU eviction with eviction-aware cascade deletion
+- TTL expiration via a min-heap
+- Trie-based prefix search
+- Bloom filter optimization for fast negative lookups
+- Dependency graph with cascading deletes
+- Top-K access analytics
+- HTTP API with JSON state snapshots
+- D3.js visualization dashboard
 
-### TTL Expiration
+---
 
-Keys can expire after a specified duration:
-
-```cpp
-set("token", "xyz", 10); // Expires in 10 seconds
-```
-
-### Prefix Search
-
-Efficient autocompletion and analytics:
-
-```cpp
-prefix("us"); // → ["user1", "user2", "username"]
-```
-
-### Bloom Filter Optimization
-
-Quickly checks if a key *might exist* before performing a HashMap lookup — reducing unnecessary searches.
-
-### Dependency Graph
-
-Allows cascading updates or deletions:
+## System Architecture
 
 ```
-A → B → C
-```
+                           +-------------------------------+
+                           |           CacheEngine         |
+                           |   orchestration / facade      |
+                           +---------------+---------------+
+                                           |
+        +---------------+  +---------------+---------------+  +----------------+
+        | HashMap       |  | LRU Cache     |               |  | TTL Heap       |
+        | O(1) lookup   |  | MRU ordering  |               |  | expiry control |
+        +---------------+  +---------------+               +----------------+
+                |                    |                             |
+                +--------------------+-----------------------------+
+                                    |
+                              +-----+-----+
+                              | Trie      |
+                              | Prefix    |
+                              +-----+-----+
+                                    |
+                              +-----+-----+
+                              | Graph     |
+                              | Cascade   |
+                              +-----------+
 
-Changing A affects B and C automatically.
-
-### Top-K Analytics
-
-Tracks the most frequently accessed keys.
-
-### Command-Line Interface (CLI)
-
-Supports commands like:
-
-```
-SET key value
-GET key
-DEL key
-PREFIX ab
+HTTP server: /cmd + /state + /health
+Frontend: renders /state snapshots only
 ```
 
 ---
 
-## 🔍 Components & Why They Exist
+## Data Structures Used
 
-| Component              | Purpose                                                      |
-| ---------------------- | ------------------------------------------------------------ |
-| **HashMap**            | O(1) key lookup                                              |
-| **LRU Cache**          | Keeps frequently used keys in memory; evicts least-used keys |
-| **TTL Heap**           | Min-heap for fast expiration handling                        |
-| **Trie**               | Prefix search & autocomplete                                 |
-| **Bloom Filter**       | Fast negative lookup, reduces unnecessary HashMap searches   |
-| **Dependency Graph**   | Cascading updates/deletes between keys                       |
-| **Logger / Analytics** | Tracks usage patterns and assists debugging                  |
-| **CLI Parser**         | Converts user commands into cache operations                 |
-
----
-
-## ⚙ How It Works
-
-### 1️⃣ SET(key, value)
-
-1. Add key to Bloom Filter
-2. Insert key-value into HashMap
-3. Update LRU cache
-4. Insert key into Trie for prefix search
-5. Add to TTL Heap if expiration is provided
-
-### 2️⃣ GET(key)
-
-1. Check Bloom Filter
-
-   * If "definitely not exists" → return null
-   * If "might exist" → continue
-2. Lookup in HashMap
-3. Update LRU status
-
-### 3️⃣ PREFIX(prefix)
-
-* Traverse Trie from root
-* Collect all matching keys
-* Return as list
-
-### 4️⃣ TTL Expiration
-
-* Min-heap stores `(expiry_time, key)`
-* Remove expired keys efficiently when their TTL passes
-
-### 5️⃣ Dependency Graph
-
-* Example:
-
-```
-depend(A, B) // B depends on A
-```
-
-* Updating or deleting A triggers updates/deletes to B
+| Data Structure | Role |
+| --- | --- |
+| HashMap | O(1) key-value storage for cache entries |
+| LRU Cache | Tracks most/least recently used keys for eviction |
+| TTL Heap | Expiration scheduling using a min-heap |
+| Trie | Prefix search and autocomplete |
+| Bloom Filter | Fast negative lookup to reduce HashMap misses |
+| Dependency Graph | Cascading deletes across dependent keys |
+| SkipList | Standalone sorted structure with tests |
+| Top-K | Access frequency analytics |
 
 ---
 
-## 📁 Project Structure
+## Why Each Data Structure Was Chosen
 
+- HashMap provides O(1) average lookup and is the foundation of the cache.
+- LRU ordering ensures capacity-based eviction is predictable and fast.
+- TTL Heap is a natural fit for ordered expiration by time.
+- Trie enables prefix search without scanning the entire keyspace.
+- Bloom Filter reduces negative lookups when the key definitely does not exist.
+- Dependency Graph models cascading key dependencies without hard coupling.
+- SkipList is included as a standalone sorted structure (with tests) to demonstrate probabilistic indexing.
+- Top-K analytics highlight frequently accessed keys with minimal overhead.
+
+---
+
+## Backend Architecture
+
+- CacheEngine is the orchestration layer for all data structures.
+- CommandParser parses and dispatches commands only; it does not own state.
+- HttpServer is transport-only; no stdout hijacking or state logic.
+- Serialization is centralized in a single export path.
+
+---
+
+## Frontend Visualization Architecture
+
+- Frontend renders a single backend snapshot from `/state`.
+- No independent cache simulation or TTL/LRU logic exists on the client.
+- Rendering functions are isolated and reusable.
+- Graph rendering uses D3.js with drag support.
+
+---
+
+## HTTP API
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | /health | Liveness check |
+| POST | /cmd | Execute a cache command (plain text body) |
+| GET | /state | Full JSON snapshot for UI rendering |
+
+Example:
 ```
-PANCACHE/
-│
-├─ frontend/
-│ ├─ index.html
-│ ├─ script.js
-│ └─ styles.css
-│
-├─ include/
-│ ├─ analytics/
-│ │ └─ topk.hpp
-│ ├─ cli/
-│ │ └─ command_parser.hpp
-│ ├─ data/
-│ │ ├─ bloom_filter.hpp
-│ │ ├─ cache_engine.hpp
-│ │ ├─ hashmap.hpp
-│ │ ├─ lru.hpp
-│ │ ├─ skiplist.hpp
-│ │ ├─ trie.hpp
-│ │ └─ ttl_heap.hpp
-│ ├─ depend/
-│ │ └─ graph.hpp
-│ └─ utils/
-│ ├─ http_server.hpp
-│ ├─ httplib.hpp
-│ ├─ logger.hpp
-│ └─ types.hpp
-│
-├─ src/
-│ ├─ analytics/
-│ │ └─ topk.cpp
-│ ├─ cli/
-│ │ └─ command_parser.cpp
-│ ├─ data/
-│ │ ├─ bloom_filter.cpp
-│ │ ├─ cache_engine.cpp
-│ │ ├─ hashmap.cpp
-│ │ ├─ lru.cpp
-│ │ ├─ trie.cpp
-│ │ └─ ttl_heap.cpp
-│ ├─ depend/
-│ │ └─ graph.cpp
-│ ├─ utils/
-│ │ ├─ http_server.cpp
-│ │ └─ logger.cpp
-│ └─ main.cpp
-│
-├─ tests/
-│ ├─ test_cache.cpp
-│ ├─ test_cli.cpp
-│ ├─ test_graph.cpp
-│ ├─ test_hashmap.cpp
-│ ├─ test_heap.cpp
-│ ├─ test_integration.cpp
-│ ├─ test_logger.cpp
-│ ├─ test_lru.cpp
-│ ├─ test_skiplist.cpp
-│ ├─ test_topk.cpp
-│ └─ test_trie.cpp
-│
-├─ Makefile
-├─ README.md
-└─ .gitignore
+POST /cmd
+SET a 10
 ```
 
 ---
 
-## 💡 Real-World Applications
+## Command Reference
 
-| Feature          | Example Use Case                        |
-| ---------------- | --------------------------------------- |
-| HashMap          | Fast key storage (Redis)                |
-| LRU Cache        | OS page replacement, Redis caching      |
-| Trie             | Autocomplete search                     |
-| Bloom Filter     | Cassandra, Redis, Big Data              |
-| TTL Heap         | Job scheduling                          |
-| Dependency Graph | Build systems (Bazel), React UI updates |
-| Top-K Analytics  | Dashboard for most accessed items       |
-| CLI Parser       | Interactive cache interface             |
+| Command | Description |
+| --- | --- |
+| SET key value | Insert/update a key |
+| GET key | Retrieve a value |
+| DEL key | Delete a key (cascades) |
+| LINK A B | Create dependency A -> B |
+| EXPIRE key ttl | Set TTL in seconds |
+| SIZE | Report size |
+| PREFIX p | Prefix search |
+| TOPK k | Top-K access analytics |
+| CLEAR | Clear all keys |
 
 ---
 
-## 🚀 How to Run
-
-1. Clone the repository:
-
-```bash
-git clone <repo_link>
-```
-
-2. Build the project:
-
-```bash
-make
-```
-
-3. Run the CLI:
-
-```bash
-./pancache
-```
-
-4. Use commands:
+## Build Instructions
 
 ```
-SET key value
-GET key
-DEL key
-LINK A B 
-EXPIRE key ttl
-SIZE
-PREFIX ab
-TOPK k
-HELP
-SEARCH
+make clean
+make all -j8
+```
+
+## Run Instructions
+
+```
+./build/pancache_main
+```
+
+---
+
+## Example Usage
+
+```
+SET user:1 Alice
+SET user:2 Bob
+GET user:1
+LINK user:1 user:2
+EXPIRE user:2 10
+PREFIX user:
+TOPK 3
 CLEAR
-EXIT
 ```
 
 ---
 
+## Screenshots / GIFs
 
-## Architecture Modules
+- Dashboard screenshot: (add image here)
+- Dependency graph demo: (add GIF here)
 
-```text
-                             ┌───────────────────────────────┐
-                             │           PANCache            │
-                             │        (Architecture)         │
-                             └───────────────┬───────────────┘
-                                             │
-                                             ▼
-                            ┌───────────────────────────────────┐
-                            │           CacheEngine             │
-                            │  (Main Orchestrator / Facade)     │
-                            └───────────────┬───────────────────┘
-                                            │
-           ┌───────────────┬────────────────┼───────────────┬───────────────┐
-           ▼               ▼                ▼               ▼               ▼
-       ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-       │  HashMap    │ │    LRU      │ │  TTL Heap   │ │  SkipList   │ │    Trie     │
-       │ O(1) lookup │ │ O(1) evict  │ │ TTL expiry  │ │ Sorted keys │ │Prefix search│
-       └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-              │               │               │               │               │
-              └───────┬───────┴───────┬───────┴───────┬───────┴───────┬───────┘
-                      ▼               ▼               ▼               ▼
-              ┌─────────────────────────────────────────────────────────┐
-              │                       Graph (DAG)                       │
-              │ Dependency Manager: parent → child relationships        │
-              │ Handles cascading updates/deletes                       │
-              └─────────────────────────────────────────────────────────┘
-                                            │
-                                            ▼
-                                  ┌──────────────────┐
-                                  │      Logger      │
-                                  │ Console / File   │
-                                  │ Debug / Info     │
-                                  └──────────────────┘
-                                            │
-                                            ▼
-                                  ┌──────────────────┐
-                                  │  CommandParser   │
-                                  │  CLI Interface   │
-                                  └──────────────────┘
-                                            │
-                                            ▼
-                               User enters commands:
-                       SET / GET / DEL / EXPIRE / LINK / PREFIX
+---
+
+## Performance Notes
+
+- HashMap and LRU operations are O(1) average.
+- TTL heap uses a min-heap; expiry removal is ordered.
+- Bloom filter can produce false positives but no false negatives.
+
+---
+
+## Future Improvements
+
+- SSE/WebSocket updates instead of polling
+- Background TTL cleanup tick
+- Concurrency safety and lock-free paths
+- Metrics and tracing for cache hit/miss and eviction
+
+---
+
+## Scalability Discussion
+
+The current design is single-process and optimized for clarity. With a sharded HashMap, background expiration workers, and async event handling, the architecture can scale horizontally with minimal changes to the core abstractions.
+
+---
+
+## Project Structure
 
 ```
+frontend/
+include/
+src/
+tests/
+Makefile
+README.md
+```
+
+---
+
+## Design Decisions
+
+- Centralized CacheEngine orchestration prevents data structure drift.
+- Stateless frontend rendering avoids client-side desynchronization.
+- Explicit JSON export keeps observability consistent and debuggable.
+
+---
+
+## Technical Challenges
+
+- Avoiding stale LRU/TTL state across cascading deletes
+- Ensuring trie + bloom filter consistency on updates and deletes
+- Rendering stable dependency graphs under rapid updates
+
+---
+
+## Resume / Interview Value
+
+PANCache demonstrates systems design, data structure implementation, and full-stack integration. It is suitable for interviews that test architecture, performance, and correctness tradeoffs.
 

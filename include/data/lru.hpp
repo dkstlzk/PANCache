@@ -4,8 +4,6 @@
 #include "hashmap.hpp"
 #include <optional>
 #include <vector>
-using namespace std;
-
 template <typename K, typename V>
 class LRUCache {
 private:
@@ -36,7 +34,7 @@ public:
     std::optional<V> get(const K& key);
     void display() const;
     bool erase(const K& key);
-    size_t size() const { return count; }
+    std::size_t size() const { return count; }
     std::vector<K> getOrder() const;
     void clear();
 };

@@ -8,15 +8,13 @@
 #include <ctime>
 #include <optional>
 
-using namespace std;
-
 template <typename K, typename V>
 class SkipList {
 private:
     struct Node {
         K key;
         V value;
-        vector<Node*> forward;
+        std::vector<Node*> forward;
         Node(K k, V v, int level): key(k), value(v), forward(level+1, nullptr) {}
     };
 
@@ -26,105 +24,105 @@ private:
     Node* header;
 
     int randomLevel() const {
-        int lvl=0;
-        while (((float)rand()/RAND_MAX)<probability && lvl<maxLevel)
+        int lvl = 0;
+        while ((static_cast<float>(std::rand()) / RAND_MAX) < probability && lvl < maxLevel)
             lvl++;
         return lvl;
     }
 
 public:
     SkipList(int maxL=8, float prob=0.5f): maxLevel(maxL), probability(prob), currentLevel(0) {
-        srand((unsigned)time(nullptr));
-        header= new Node(K(), V(), maxLevel);
+        std::srand(static_cast<unsigned>(std::time(nullptr)));
+        header = new Node(K(), V(), maxLevel);
     }
 
     ~SkipList() {
-        Node* curr= header->forward[0];
+        Node* curr = header->forward[0];
         while (curr) {
-            Node* next= curr->forward[0];
+            Node* next = curr->forward[0];
             delete curr;
-            curr=next;
+            curr = next;
         }
         delete header;
     }
 
     void insert(const K& key, const V& value) {
-        vector<Node*> update(maxLevel+1, nullptr);
-        Node* curr= header;
+        std::vector<Node*> update(maxLevel+1, nullptr);
+        Node* curr = header;
 
-        for (int i=currentLevel; i>=0; i--) {
+        for (int i = currentLevel; i >= 0; i--) {
             while (curr->forward[i] && curr->forward[i]->key < key)
-                curr= curr->forward[i];
-            update[i]= curr;
+                curr = curr->forward[i];
+            update[i] = curr;
         }
 
-        curr= curr->forward[0];
+        curr = curr->forward[0];
 
-        if (curr && curr->key==key){
-            curr->value= value; 
+        if (curr && curr->key == key){
+            curr->value = value; 
             return;
         }
 
-        int newLevel= randomLevel();
-        if (newLevel>currentLevel) {
-            for (int i= currentLevel+1; i<=newLevel; i++)
-                update[i]=header;
-            currentLevel=newLevel;
+        int newLevel = randomLevel();
+        if (newLevel > currentLevel) {
+            for (int i = currentLevel + 1; i <= newLevel; i++)
+                update[i] = header;
+            currentLevel = newLevel;
         }
 
-        Node* newNode= new Node(key, value, newLevel);
-        for (int i=0; i<=newLevel; i++) {
-            newNode->forward[i]= update[i]->forward[i];
-            update[i]->forward[i]= newNode;
+        Node* newNode = new Node(key, value, newLevel);
+        for (int i = 0; i <= newLevel; i++) {
+            newNode->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = newNode;
         }
     }
 
-    optional<V> search(const K& key) const {
-        Node* curr= header;
-        for (int i= currentLevel; i>=0; i--) {
+    std::optional<V> search(const K& key) const {
+        Node* curr = header;
+        for (int i = currentLevel; i >= 0; i--) {
             while (curr->forward[i] && curr->forward[i]->key < key)
-                curr= curr->forward[i];
+                curr = curr->forward[i];
         }
 
-        curr= curr->forward[0];
-        if (curr && curr->key==key)
+        curr = curr->forward[0];
+        if (curr && curr->key == key)
             return curr->value;
 
-        return nullopt;
+        return std::nullopt;
     }
 
     bool erase(const K& key) {
-        vector<Node*> update(maxLevel+1, nullptr);
-        Node* curr= header;
+        std::vector<Node*> update(maxLevel+1, nullptr);
+        Node* curr = header;
 
-        for (int i = currentLevel; i>=0; i--) {
+        for (int i = currentLevel; i >= 0; i--) {
             while (curr->forward[i] && curr->forward[i]->key < key)
-                curr= curr->forward[i];
-            update[i]=curr;
+                curr = curr->forward[i];
+            update[i] = curr;
         }
 
-        curr= curr->forward[0];
-        if (!curr || curr->key!=key) return false;
+        curr = curr->forward[0];
+        if (!curr || curr->key != key) return false;
 
-        for (int i=0; i<=currentLevel; i++) {
-            if (update[i]->forward[i]!=curr) break;
-            update[i]->forward[i]= curr->forward[i];
+        for (int i = 0; i <= currentLevel; i++) {
+            if (update[i]->forward[i] != curr) break;
+            update[i]->forward[i] = curr->forward[i];
         }
         delete curr;
 
-        while (currentLevel>0 && !header->forward[currentLevel])
+        while (currentLevel > 0 && !header->forward[currentLevel])
             currentLevel--;
         return true;
     }
 
     void display() const {
-        cout << "SkipList contents (level 0): ";
-        Node* curr= header->forward[0];
+        std::cout << "SkipList contents (level 0): ";
+        Node* curr = header->forward[0];
         while (curr) {
-            cout << "(" << curr->key << "," << curr->value << ") ";
-            curr= curr->forward[0];
+            std::cout << "(" << curr->key << "," << curr->value << ") ";
+            curr = curr->forward[0];
         }
-        cout << endl;
+        std::cout << std::endl;
     }
 };
 

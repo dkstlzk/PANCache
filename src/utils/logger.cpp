@@ -61,7 +61,7 @@ std::string Logger::levelToString(Level level) const {
         case Level::DEBUG: return "DEBUG";
         case Level::INFO:  return "INFO";
         case Level::WARN:  return "WARN";
-        case Level::ERROR: return "ERROR";
+        case Level::ERR: return "ERROR";
     }
     return "UNKNOWN";
 }
@@ -71,7 +71,7 @@ std::string Logger::colorize(Level level, const std::string& text) const {
         case Level::DEBUG: return std::string(MAGENTA) + text + RESET;
         case Level::INFO:  return std::string(GREEN)   + text + RESET;
         case Level::WARN:  return std::string(YELLOW)  + text + RESET;
-        case Level::ERROR: return std::string(RED)     + text + RESET;
+        case Level::ERR: return std::string(RED)     + text + RESET;
         default:           return text;
     }
 }
@@ -92,7 +92,7 @@ void Logger::log(Level level, const std::string& msg) {
 void Logger::debug(const std::string& msg) { log(Level::DEBUG, msg); }
 void Logger::info (const std::string& msg) { log(Level::INFO,  msg); }
 void Logger::warn (const std::string& msg) { log(Level::WARN,  msg); }
-void Logger::error(const std::string& msg) { log(Level::ERROR, msg); }
+void Logger::error(const std::string& msg) { log(Level::ERR, msg); }
 
 } // namespace Utils
 } // namespace PANCache

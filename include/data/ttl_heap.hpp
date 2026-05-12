@@ -6,8 +6,6 @@
 #include <utility>
 #include <optional>
 
-using namespace std;
-
 template <typename Key, typename Value>
 class TTLHeap {
 public:
@@ -19,10 +17,10 @@ public:
 
     std::vector<Key> removeExpired();  
 
-    size_t size() const;
+    std::size_t size() const;
 
 private:
-    using TimePoint = chrono::steady_clock::time_point;
+    using TimePoint = std::chrono::steady_clock::time_point;
 
     struct HeapNode {
         Key key;
@@ -33,17 +31,17 @@ private:
         }
     };
 
-    unordered_map<Key, pair<Value, TimePoint>> map_;
-    vector<HeapNode> heap_;
+    std::unordered_map<Key, std::pair<Value, TimePoint>> map_;
+    std::vector<HeapNode> heap_;
 
-    void heapifyUp(size_t index);
-    void heapifyDown(size_t index);
-    void swapNodes(size_t i, size_t j);
+    void heapifyUp(std::size_t index);
+    void heapifyDown(std::size_t index);
+    void swapNodes(std::size_t i, std::size_t j);
 
 public:
     bool erase(const Key& key);
     bool getExpiry(const Key& key, TimePoint& expiry) const;
-    unordered_map<Key, long long> getExpiryEpochMs() const;
-    unordered_map<Key, int> getRemainingSeconds() const;
+    std::unordered_map<Key, long long> getExpiryEpochMs() const;
+    std::unordered_map<Key, int> getRemainingSeconds() const;
     void clear();
 };

@@ -12,46 +12,44 @@
 
 #include "data/cache_engine_state.hpp"
 
-using namespace std;
-
 class CacheEngine {
 public:
     CacheEngine();                  
-    explicit CacheEngine(size_t capacity);  
+    explicit CacheEngine(std::size_t capacity);  
 
-    void set(const string& key, const string& value);
-    void set(const string& key, const string& value, int ttl_seconds);
+    void set(const std::string& key, const std::string& value);
+    void set(const std::string& key, const std::string& value, int ttl_seconds);
 
-    std::optional<string> get(const string& key);
-    void del(const string& key);
-    void expire(const string& key, int ttl_seconds);
-    void link(const string& from, const string& to);
-    void depend(const string& parent, const string& child); 
+    std::optional<std::string> get(const std::string& key);
+    void del(const std::string& key);
+    void expire(const std::string& key, int ttl_seconds);
+    void link(const std::string& from, const std::string& to);
+    void depend(const std::string& parent, const std::string& child); 
     void clear();
-    bool contains(const string& key) const;
+    bool contains(const std::string& key) const;
     void cleanupExpired();
 
-    bool trieSearch(const string& key) const;
-    vector<string> triePrefix(const string& prefix) const;
+    bool trieSearch(const std::string& key) const;
+    std::vector<std::string> triePrefix(const std::string& prefix) const;
 
-    size_t size() const;
-    vector<string> prefix(const string& p) const;
-    vector<pair<string,int>> topK(int k) const;
+    std::size_t size() const;
+    std::vector<std::string> prefix(const std::string& p) const;
+    std::vector<std::pair<std::string,int>> topK(int k) const;
     CacheEngineState exportState();
 
-    void setLastPrefixQuery(const string& prefix);
+    void setLastPrefixQuery(const std::string& prefix);
     void setLastTopK(int k);
 
 private:
-    LRUCache<string, string> lru_;
-    HashMap<string, string> hashmap_;
-    TTLHeap<string, string> ttl_heap_;
+    LRUCache<std::string, std::string> lru_;
+    HashMap<std::string, std::string> hashmap_;
+    TTLHeap<std::string, std::string> ttl_heap_;
     PANCache::Depend::Graph graph_;
     Trie trie_;  
     void cleanupExpiredKeys();
-    void deleteCascade(const string& key);
+    void deleteCascade(const std::string& key);
     BloomFilter bloom_; 
-    unordered_map<string, int> freqMap_;
-    string last_prefix_query_;
+    std::unordered_map<std::string, int> freqMap_;
+    std::string last_prefix_query_;
     int last_topk_k_ = 5;
 };

@@ -7,8 +7,6 @@
 #include <optional>
 #include <utility>
 
-using namespace std;
-
 template <typename K, typename V>
 class HashMap {
 private:
@@ -19,29 +17,29 @@ private:
         Entry(const K& k, const V& v): key(k), value(v), next(nullptr) {}
     };
 
-    size_t capacity;         
-    size_t count;
-    vector<Entry*> table;
+    std::size_t capacity;         
+    std::size_t count;
+    std::vector<Entry*> table;
 
     const float load_factor=0.75f;
 
-    size_t hashKey(const K& key) const { return hash<K>{}(key)%capacity; }
+    std::size_t hashKey(const K& key) const { return std::hash<K>{}(key) % capacity; }
     void resizeIfNeeded();
 
 public:
     HashMap();                          // default: capacity = 16
-    explicit HashMap(size_t initial_capacity);
+    explicit HashMap(std::size_t initial_capacity);
     ~HashMap();
 
     void insert(const K& key, const V& value);
-    optional<V> get(const K& key) const;
+    std::optional<V> get(const K& key) const;
     bool erase(const K& key);
     bool contains(const K& key) const;
 
-    size_t size() const { return count; }
+    std::size_t size() const { return count; }
     void clear();
-    vector<K> keys() const;
-    vector<vector<pair<K, V>>> buckets() const;
+    std::vector<K> keys() const;
+    std::vector<std::vector<std::pair<K, V>>> buckets() const;
 };
 
 #endif 

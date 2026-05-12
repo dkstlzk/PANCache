@@ -14,7 +14,7 @@ void Trie::deleteSubtree(Node* node) {
     delete node;
 }
 
-void Trie::insert(const string& word) {
+void Trie::insert(const std::string& word) {
     if (word.empty()) return;
     Node* curr = root;
     for (char c : word) {
@@ -26,7 +26,7 @@ void Trie::insert(const string& word) {
     curr->isEnd = true;
 }
 
-bool Trie::search(const string& word) const {
+bool Trie::search(const std::string& word) const {
     if (word.empty()) return false;
     Node* curr = root;
     for (char c : word) {
@@ -38,11 +38,11 @@ bool Trie::search(const string& word) const {
     return curr->isEnd;
 }
 
-vector<string> Trie::startsWith(const string& prefix) const {
+std::vector<std::string> Trie::startsWith(const std::string& prefix) const {
     return getWordsWithPrefix(prefix);
 }
 
-vector<string> Trie::getWordsWithPrefix(const string& prefix) const {
+std::vector<std::string> Trie::getWordsWithPrefix(const std::string& prefix) const {
     Node* curr = root;
     for (char c : prefix) {
         auto it = curr->children.find(c);
@@ -51,19 +51,19 @@ vector<string> Trie::getWordsWithPrefix(const string& prefix) const {
         curr = it->second;
     }
 
-    vector<string> result;
+    std::vector<std::string> result;
     collect(curr, prefix, result);
     return result;
 }
 
-void Trie::collect(Node* node, string prefix, vector<string>& result) const {
+void Trie::collect(Node* node, std::string prefix, std::vector<std::string>& result) const {
     if (!node) return;
 
     if (node->isEnd)
         result.push_back(prefix);
 
-    vector<pair<char, Node*>> ordered(node->children.begin(), node->children.end());
-    sort(ordered.begin(), ordered.end(),
+    std::vector<std::pair<char, Node*>> ordered(node->children.begin(), node->children.end());
+    std::sort(ordered.begin(), ordered.end(),
         [](const auto& a, const auto& b) { return a.first < b.first; });
 
     for (const auto& kv : ordered) {
@@ -71,7 +71,7 @@ void Trie::collect(Node* node, string prefix, vector<string>& result) const {
     }
 }
 
-bool Trie::removeHelper(Node* node, const string& word, int depth) {
+bool Trie::removeHelper(Node* node, const std::string& word, int depth) {
     if (!node) return false;
 
     if (depth == (int)word.size()) {
@@ -93,7 +93,7 @@ bool Trie::removeHelper(Node* node, const string& word, int depth) {
     return false;
 }
 
-void Trie::remove(const string& word) {
+void Trie::remove(const std::string& word) {
     if (word.empty()) return;
     removeHelper(root, word, 0);
 }

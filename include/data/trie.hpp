@@ -2,24 +2,22 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-using namespace std;
-
 class Trie {
 private:
     struct Node {
         bool isEnd;
-        unordered_map<char, Node*> children;
+        std::unordered_map<char, Node*> children;
         Node() : isEnd(false) {}
     };
 
     Node* root;
 
-    void collect(Node* node, string prefix, vector<string>& result) const;
+    void collect(Node* node, std::string prefix, std::vector<std::string>& result) const;
 
     void deleteSubtree(Node* node);
 
     // remove support
-    bool removeHelper(Node* node, const string& word, int depth);
+    bool removeHelper(Node* node, const std::string& word, int depth);
 
 public:
     Trie() { root = new Node(); }
@@ -27,15 +25,15 @@ public:
     Trie(const Trie&) = delete;
     Trie& operator=(const Trie&) = delete;
 
-    void insert(const string& word);
-    bool search(const string& word) const;
+    void insert(const std::string& word);
+    bool search(const std::string& word) const;
 
     // prefix search
-    vector<string> startsWith(const string& prefix) const;
-    vector<string> getWordsWithPrefix(const string& prefix) const;
+    std::vector<std::string> startsWith(const std::string& prefix) const;
+    std::vector<std::string> getWordsWithPrefix(const std::string& prefix) const;
 
     // remove key
-    void remove(const string& word);
+    void remove(const std::string& word);
 
     void clear();
 };
