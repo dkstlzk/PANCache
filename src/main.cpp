@@ -3,6 +3,10 @@
 #include "utils/http_server.hpp"
 #include "utils/logger.hpp"
 #include <csignal>
+#include <thread>
+#include <cstdlib>
+#include <cctype>
+#include <algorithm>
 
 namespace {
 HttpServer* g_server = nullptr;
@@ -13,6 +17,27 @@ void signalHandler(int signal) {
         log.info("Received shutdown signal");
         if (g_server) g_server->stop();
     }
+}
+
+bool shouldAutoOpenBrowser() {
+    const char* raw = std::getenv("PANCACHE_OPEN_BROWSER");
+    if (!raw) return true;
+    std::string v(raw);
+    std::transform(v.begin(), v.end(), v.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    return !(v == "0" || v == "false" || v == "off" || v == "no");
+}
+
+int launchBrowser(const std::string& url) {
+#if defined(_WIN32)
+    std::string cmd = "cmd /c start \"\" \"" + url + "\"";
+#elif defined(__APPLE__)
+    std::string cmd = "open \"" + url + "\"";
+#else
+    std::string cmd = "xdg-open \"" + url + "\"";
+#endif
+    return std::system(cmd.c_str());
 }
 }
 
@@ -44,11 +69,28 @@ int main() {
     const std::string host = "127.0.0.1";
     const int port = 8080;
 
-    log.info("PANCache server starting on http://" + host + ":" + std::to_string(port));
+    const std::string url = "http://" + host + ":" + std::to_string(port);
+    log.info("PANCache server starting on " + url);
     log.info("Available endpoints:");
     log.info("  - GET  /health");
     log.info("  - POST /cmd");
+    log.info("PANCache UI available at: " + url);
     log.info("Press Ctrl+C to stop the server");
+
+    if (shouldAutoOpenBrowser()) {
+        log.info("Auto-open browser enabled");
+        std::thread([&http, url]() {
+            http.waitUntilReady();
+            if (!http.isRunning()) return;
+            auto& log = Logger::getInstance();
+            log.info("Opening browser: " + url);
+            if (launchBrowser(url) != 0) {
+                log.warn("Browser launch command failed");
+            }
+        }).detach();
+    } else {
+        log.info("Auto-open browser disabled via PANCACHE_OPEN_BROWSER");
+    }
 
     if (!http.start(host, port)) {
         log.error("HTTP server failed to start");

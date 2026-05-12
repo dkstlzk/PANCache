@@ -1,4 +1,8 @@
-const BACKEND_URL = "http://localhost:8080";
+const BACKEND_URL =
+  (window.location.origin && window.location.origin !== "null")
+    ? window.location.origin
+    : "http://127.0.0.1:8080";
+const POLL_INTERVAL_MS = 1500;
 let backendOnline = false;
 
 const cache = new Map();
@@ -7,6 +11,11 @@ const svg = d3.select("#graph");
 let ttlExpiry = {};
 let lruList = [];
 let hashmapBuckets = [];
+let fetchInFlight = false;
+let refreshQueued = false;
+let pollTimer = null;
+let pollActive = false;
+let lastStateSignature = "";
 
 // send raw command to backend
 async function sendCommandToBackend(cmd) {
@@ -22,7 +31,7 @@ async function sendCommandToBackend(cmd) {
     const text = await res.text();
     log(text.trim() || `(executed ${cmd})`);
 
-    await fetchBackendState();
+    await fetchBackendState({ force: true });
 
   } catch (err) {
     backendOnline = false;
@@ -31,7 +40,13 @@ async function sendCommandToBackend(cmd) {
 }
 
 // fetch backend full state object
-async function fetchBackendState() {
+async function fetchBackendState(options = {}) {
+  const force = options.force === true;
+  if (fetchInFlight) {
+    if (force) refreshQueued = true;
+    return;
+  }
+  fetchInFlight = true;
   try {
     const r = await fetch(`${BACKEND_URL}/state`);
     if (!r.ok) throw new Error("bad");
@@ -39,10 +54,42 @@ async function fetchBackendState() {
     backendOnline = true;
 
     const state = await r.json();
-    applyBackendState(state);
+    const signature = JSON.stringify(state);
+    if (signature !== lastStateSignature) {
+      lastStateSignature = signature;
+      applyBackendState(state);
+    }
 
   } catch (err) {
     backendOnline = false;
+  } finally {
+    fetchInFlight = false;
+    if (refreshQueued) {
+      refreshQueued = false;
+      fetchBackendState();
+    }
+  }
+}
+
+function scheduleNextPoll() {
+  if (!pollActive) return;
+  pollTimer = setTimeout(async () => {
+    if (!document.hidden) await fetchBackendState();
+    scheduleNextPoll();
+  }, POLL_INTERVAL_MS);
+}
+
+function startPolling() {
+  if (pollActive) return;
+  pollActive = true;
+  scheduleNextPoll();
+}
+
+function stopPolling() {
+  pollActive = false;
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
   }
 }
 
@@ -293,5 +340,14 @@ if (inputEl) {
   });
 }
 
-fetchBackendState();
-setInterval(fetchBackendState, 1000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopPolling();
+  } else {
+    startPolling();
+    fetchBackendState({ force: true });
+  }
+});
+
+fetchBackendState({ force: true });
+startPolling();

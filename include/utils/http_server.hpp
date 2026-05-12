@@ -14,6 +14,8 @@ public:
     void setupRoutes();
     bool start(const std::string& host, int port);
     void stop();
+    bool isRunning() const;
+    void waitUntilReady() const;
 
 private:
     httplib::Server server_;
