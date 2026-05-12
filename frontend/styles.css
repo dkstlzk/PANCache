@@ -169,3 +169,32 @@ th, td {
   max-height: 420px;
   overflow: hidden;
 }
+
+/* Console formatting */
+.log-entry {
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  font-family: "Consolas", monospace;
+}
+
+.log-time {
+  color: #8892b0;
+  font-size: 0.85em;
+  margin-right: 8px;
+}
+
+.log-entry.command .log-msg {
+  color: #66fcf1;
+  font-weight: bold;
+}
+
+.log-entry.response .log-msg {
+  color: #c5c6c7;
+}
+
+.log-entry.error .log-msg {
+  color: #f28b82;
+  font-weight: bold;
+}
+

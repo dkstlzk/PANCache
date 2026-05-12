@@ -19,6 +19,7 @@ let lastStateSignature = "";
 
 // send raw command to backend
 async function sendCommandToBackend(cmd) {
+  logEntry("command", cmd);
   try {
     const res = await fetch(`${BACKEND_URL}/cmd`, {
       method: "POST",
@@ -29,13 +30,14 @@ async function sendCommandToBackend(cmd) {
     backendOnline = true;
 
     const text = await res.text();
-    log(text.trim() || `(executed ${cmd})`);
+    const isError = text.includes("Unknown command") || text.includes("Usage:") || text.includes("must be");
+    logEntry(isError ? "error" : "response", text.trim() || `(executed)`);
 
     await fetchBackendState({ force: true });
 
   } catch (err) {
     backendOnline = false;
-    log("⚠ Backend offline. Command not executed.");
+    logEntry("error", "⚠ Backend offline. Command not executed.");
   }
 }
 
@@ -150,11 +152,26 @@ function getSvgSize() {
   return { width: w, height: h };
 }
 
-function log(message) {
+function logEntry(type, message) {
   const logDiv = document.getElementById("log");
   if (!logDiv) return;
+  
   const time = new Date().toLocaleTimeString();
-  logDiv.innerHTML += `[${time}] ${message}<br>`;
+  const entry = document.createElement("div");
+  entry.className = `log-entry ${type}`;
+  
+  const timeSpan = document.createElement("span");
+  timeSpan.className = "log-time";
+  timeSpan.textContent = `[${time}] `;
+  
+  const msgSpan = document.createElement("span");
+  msgSpan.className = "log-msg";
+  msgSpan.textContent = type === "command" ? `> ${message}` : message;
+  
+  entry.appendChild(timeSpan);
+  entry.appendChild(msgSpan);
+  
+  logDiv.appendChild(entry);
   logDiv.scrollTop = logDiv.scrollHeight;
 }
 
@@ -326,6 +343,9 @@ function renderGraph() {
 }
 
 
+const commandHistory = [];
+let historyIndex = -1;
+
 const inputEl = document.getElementById("command-input");
 if (inputEl) {
   inputEl.addEventListener("keydown", e => {
@@ -333,9 +353,27 @@ if (inputEl) {
       const cmd = e.target.value.trim();
       if (!cmd.length) return;
 
+      commandHistory.push(cmd);
+      historyIndex = commandHistory.length;
+
       sendCommandToBackend(cmd);
 
       e.target.value = "";
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex > 0) {
+        historyIndex--;
+        e.target.value = commandHistory[historyIndex];
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex < commandHistory.length - 1) {
+        historyIndex++;
+        e.target.value = commandHistory[historyIndex];
+      } else {
+        historyIndex = commandHistory.length;
+        e.target.value = "";
+      }
     }
   });
 }
