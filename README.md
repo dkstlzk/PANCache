@@ -57,7 +57,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed runtime flow and module inte
 | **Trie** | Prefix search across the keyspace | O(L) search, L = key length |
 | **Bloom Filter** | Fast negative lookups before HashMap access | O(k) per query, k = hash count |
 | **Dependency Graph** (adjacency list, DFS) | Cascading deletion across linked keys | O(V+E) recursive delete |
-| **SkipList** (probabilistic) | Sorted key access and range queries | O(log n) avg search/insert |
+| **SkipList** (probabilistic, experimental) | Prototype implementation for ordered access experimentation | O(log n) avg search/insert |
 | **Top-K** (min-heap over frequency map) | Access frequency analytics | O(n log k) per query |
 
 ### Why Multiple Structures?
@@ -70,7 +70,7 @@ Each data structure addresses a distinct operational concern. A real cache syste
 - **Trie** enables `PREFIX` queries without scanning the entire keyspace.
 - **Bloom Filter** short-circuits misses before touching the HashMap (useful at scale).
 - **Dependency Graph** models key relationships — deleting a parent cascades to children.
-- **SkipList** gives sorted iteration without maintaining a separate sorted copy.
+- **SkipList** was implemented to explore probabilistic ordered indexing and range-query style traversal. The current runtime visualization uses lexicographically sorted snapshots, while deeper SkipList-backed integration remains a planned architectural enhancement.
 - **Top-K** surfaces frequently accessed keys using a bounded min-heap.
 
 The `CacheEngine` class orchestrates all of these, ensuring consistency across structures during mutations.
@@ -202,7 +202,7 @@ The visualization dashboard renders all internal data structures in real-time:
 | **LRU Cache** | MRU → LRU ordering of keys |
 | **TTL Min-Heap** | Keys with active TTL, sorted by time remaining |
 | **Dependency Graph** | Interactive D3.js force-directed graph with drag support |
-| **SkipList** | Lexicographically sorted keys |
+| **Ordered Index View** | Lexicographically sorted runtime keys |
 | **Trie (Prefix Search)** | Results of the most recent `PREFIX` query |
 | **Top-K** | Most frequently accessed keys |
 | **Command Console** | Interactive terminal-style console with history navigation (Up/Down arrows) and output styling |
@@ -211,7 +211,8 @@ The frontend polls `/state` every 1.5 seconds (skipped when the tab is hidden). 
 
 ### Screenshots
 
-*(Add screenshots of the visualizer dashboard and interactive command console here)*
+<img width="2217" height="1189" alt="Screenshot 2026-05-12 232723" src="https://github.com/user-attachments/assets/14f46225-2748-4d38-aeb6-8d429aa39b95" />
+<img width="2239" height="1189" alt="Screenshot 2026-05-12 232813" src="https://github.com/user-attachments/assets/b3ff9f41-3937-4239-baa1-dd44f6803545" />
 
 ---
 
@@ -276,7 +277,7 @@ PANCache/
 │   │   ├── cache_engine_state.hpp  # state snapshot + JSON serialization
 │   │   ├── hashmap.hpp         # chained HashMap with dynamic resize
 │   │   ├── lru.hpp             # LRU cache (doubly-linked list)
-│   │   ├── skiplist.hpp        # probabilistic SkipList (header-only)
+│   │   ├── skiplist.hpp        # experimental probabilistic ordered-index structure
 │   │   ├── trie.hpp            # prefix Trie
 │   │   ├── ttl_heap.hpp        # TTL expiration min-heap
 │   │   └── bloom_filter.hpp    # Bloom filter for negative lookups
@@ -330,6 +331,7 @@ PANCache/
 | **Polling over WebSocket** | Simpler to implement and debug. 1.5s poll interval with visibility-aware throttling is sufficient for a demo tool. |
 | **cpp-httplib (vendored)** | Single-header HTTP library. Zero build dependencies beyond a C++17 compiler. |
 | **Template explicit instantiation** | HashMap, LRU, and TTL are templates instantiated for `<string, string>` at link time. Keeps headers clean while supporting type safety. |
+| **Ordered-key visualization** | The frontend currently renders ordered runtime keys using serialized sorted snapshots. A standalone SkipList implementation exists and is tested independently, with future plans for deeper runtime integration. |
 
 ---
 

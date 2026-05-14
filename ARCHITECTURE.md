@@ -117,7 +117,7 @@ Thread-safe singleton logger with severity levels (DEBUG, INFO, WARN, ERROR), AN
    2a. cleanupExpiredKeys()
    2b. Iterate HashMap keys → build entries[] with TTL remaining
    2c. Iterate Graph edges → build links[] (filtered to live keys)
-   2d. Sort keys → build skiplist[]
+   2d. Sort keys lexicographically → build ordered runtime snapshot
    2e. Get LRU order → build lru[]
    2f. Get TTL expiry epochs → build ttlExpiry{}
    2g. Compute Top-K from freqMap → build topk[]
@@ -302,6 +302,8 @@ The build system uses:
 4. **Graph stability under rapid updates:** Re-rendering the D3 force simulation on every state change can cause visual jitter. The simulation auto-stops to mitigate this.
 
 5. **LRU eviction during GET:** If a `GET` promotes a key and the LRU was at capacity from a prior `SET`, the promotion can trigger an unexpected eviction cascade.
+
+6. **SkipList integration is currently partial:** A standalone SkipList implementation exists and is tested independently, but the runtime ordered-key visualization currently uses serialized sorted snapshots instead of a live SkipList-backed index. This tradeoff simplified frontend synchronization during early development while preserving the underlying SkipList implementation for future integration work.
 
 ---
 
